@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../utils/colors.dart';
-import '../utils/constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/firebase_service.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,6 +23,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _textFadeAnimation;
   late Animation<Offset> _textSlideAnimation;
   late Animation<double> _backgroundRotationAnimation;
+
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -83,33 +86,67 @@ class _SplashScreenState extends State<SplashScreen>
     ));
     
     _startAnimations();
-    _navigateToHome();
+    _checkAuthAndNavigate();
   }
 
   void _startAnimations() {
     _backgroundController.repeat();
     _logoController.forward();
     
-    Future.delayed(Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 800), () {
       _textController.forward();
     });
   }
 
-  void _navigateToHome() {
-    Timer(Duration(milliseconds: AppConstants.splashDuration), () {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
-          transitionDuration: Duration(milliseconds: 500),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-        ),
-      );
+  void _checkAuthAndNavigate() {
+    Timer(const Duration(milliseconds: 3000), () async {
+      try {
+        // Check if user is already logged in
+        User? currentUser = _authService.currentUser;
+        
+        if (currentUser != null) {
+          // User is logged in, navigate to home screen
+          _navigateToHome();
+        } else {
+          // User is not logged in, navigate to login screen
+          _navigateToLogin();
+        }
+      } catch (e) {
+        print('Error checking auth state: $e');
+        // On error, navigate to login screen
+        _navigateToLogin();
+      }
     });
+  }
+
+  void _navigateToHome() {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+        transitionDuration: const Duration(milliseconds: 500),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
+  void _navigateToLogin() {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
+        transitionDuration: const Duration(milliseconds: 500),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -124,14 +161,14 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.primary,
-              AppColors.primaryLight,
-              AppColors.primaryDark,
+              Color(0xFF4FC3F7),
+              Color(0xFF29B6F6),
+              Color(0xFF03A9F4),
             ],
           ),
         ),
@@ -201,16 +238,16 @@ class _SplashScreenState extends State<SplashScreen>
                               borderRadius: BorderRadius.circular(80),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.shadowMedium,
+                                  color: Colors.black.withOpacity(0.1),
                                   blurRadius: 30,
-                                  offset: Offset(0, 15),
+                                  offset: const Offset(0, 15),
                                 ),
                               ],
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.auto_stories,
                               size: 80,
-                              color: AppColors.primary,
+                              color: Color(0xFF4FC3F7),
                             ),
                           ),
                         ),
@@ -218,7 +255,7 @@ class _SplashScreenState extends State<SplashScreen>
                     },
                   ),
                   
-                  SizedBox(height: 40),
+                  const SizedBox(height: 40),
                   
                   // App Name
                   AnimatedBuilder(
@@ -228,8 +265,8 @@ class _SplashScreenState extends State<SplashScreen>
                         position: _textSlideAnimation,
                         child: FadeTransition(
                           opacity: _textFadeAnimation,
-                          child: Text(
-                            AppConstants.appName,
+                          child: const Text(
+                            'TotoTales',
                             style: TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.bold,
@@ -237,7 +274,7 @@ class _SplashScreenState extends State<SplashScreen>
                               letterSpacing: 3,
                               shadows: [
                                 Shadow(
-                                  color: AppColors.shadowLight,
+                                  color: Colors.black26,
                                   blurRadius: 10,
                                   offset: Offset(0, 5),
                                 ),
@@ -249,7 +286,7 @@ class _SplashScreenState extends State<SplashScreen>
                     },
                   ),
                   
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   
                   // Tagline
                   AnimatedBuilder(
@@ -260,7 +297,7 @@ class _SplashScreenState extends State<SplashScreen>
                         child: FadeTransition(
                           opacity: _textFadeAnimation,
                           child: Text(
-                            AppConstants.appTagline,
+                            'Magical Stories for Young Minds',
                             style: TextStyle(
                               fontSize: 18,
                               color: Colors.white.withOpacity(0.9),
@@ -273,7 +310,7 @@ class _SplashScreenState extends State<SplashScreen>
                     },
                   ),
                   
-                  SizedBox(height: 60),
+                  const SizedBox(height: 60),
                   
                   // Loading indicator
                   AnimatedBuilder(
@@ -289,7 +326,7 @@ class _SplashScreenState extends State<SplashScreen>
                               ),
                               strokeWidth: 3,
                             ),
-                            SizedBox(height: 20),
+                            const SizedBox(height: 20),
                             Text(
                               'Loading magical stories...',
                               style: TextStyle(

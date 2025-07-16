@@ -193,7 +193,7 @@ class _StoryReaderScreenState extends State<StoryReaderScreen>
                                       end: Alignment.bottomCenter,
                                       colors: [
                                         Colors.transparent,
-                                        Colors.black.withOpacity(0.1),
+                                        Colors.black.withAlpha((0.1 * 255).toInt()),
                                       ],
                                     ),
                                   ),

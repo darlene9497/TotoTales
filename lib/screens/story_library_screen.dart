@@ -90,7 +90,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.primary.withOpacity(0.1),
+              AppColors.primary.withAlpha((0.1 * 255).toInt()),
               Colors.white,
             ],
           ),
@@ -217,7 +217,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                border: Border.all(color: AppColors.primary.withAlpha((0.3 * 255).toInt())),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
@@ -253,7 +253,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+              border: Border.all(color: AppColors.primary.withAlpha((0.3 * 255).toInt())),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(

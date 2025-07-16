@@ -449,7 +449,7 @@ class _LanguageCardState extends State<LanguageCard>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.isSelected ? widget.color.withOpacity(0.3) : AppColors.shadowLight,
+                    color: widget.isSelected ? widget.color.withAlpha((0.3 * 255).toInt()) : AppColors.shadowLight,
                     blurRadius: widget.isSelected ? 12 : 8,
                     offset: const Offset(0, 4),
                   ),

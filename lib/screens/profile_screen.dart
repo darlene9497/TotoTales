@@ -7,6 +7,7 @@ import '../utils/constants.dart';
 import '../widgets/animated_button.dart';
 import '../models/user.dart';
 import '../screens/language_screen.dart';
+import '../screens/login_screen.dart'; // Add this import
 
 class ProfileScreen extends StatefulWidget {
   final User? user;
@@ -366,6 +367,147 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  void _showLogoutBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Logout icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.logout_rounded,
+                  size: 40,
+                  color: Colors.red.shade400,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Title
+              Text(
+                'Sign Out',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // Subtitle
+              Text(
+                'Are you sure you want to sign out? You\'ll need to sign in again to access your stories.',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: AppColors.textMedium,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMedium,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _handleLogout();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade400,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Sign Out',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              // Bottom padding for safe area
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleLogout() {
+    // TODO: Implement logout logic (clear user data, tokens, etc.)
+    
+    // Navigate to login screen and remove all previous routes
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const LoginScreen(),
+      ),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -381,18 +523,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.settings_rounded,
-              color: AppColors.textDark,
-            ),
-            onPressed: () {
-              // TODO: Navigate to settings
-            },
-          ),
-        ],
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
@@ -568,17 +698,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Text(
-                            'Settings',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
-                            ),
-                          ),
-                        ),
                         _buildSettingsItem(
                           icon: Icons.cake_rounded,
                           title: 'Change Age Range',
@@ -619,6 +738,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   size: 16,
                                   color: AppColors.textMedium,
                                 ),
+                        ),
+                        const Divider(height: 1),
+                        _buildSettingsItem(
+                          icon: Icons.logout_rounded,
+                          title: 'Sign Out',
+                          subtitle: 'Sign out of your account',
+                          onTap: _showLogoutBottomSheet,
+                          trailing: Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16,
+                            color: AppColors.textMedium,
+                          ),
                         ),
                       ],
                     ),

@@ -24,23 +24,18 @@ class _AffirmationScreenState extends State<AffirmationScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _sparkleAnimation;
   
-  late Affirmation _currentAffirmation;
-  int _currentBackgroundIndex = 0;
+  Affirmation? _currentAffirmation;
+  bool _isLoading = true;
+  String? _error;
   
-  final List<String> _backgroundImages = [
-    'assets/images/backgrounds/rainbow_sky.png',
-    'assets/images/backgrounds/starry_night.png',
-    'assets/images/backgrounds/sunny_field.png',
-    'assets/images/backgrounds/flower_garden.png',
-    'assets/images/backgrounds/ocean_waves.png',
-  ];
-
   @override
   void initState() {
     super.initState();
-    _currentAffirmation = AffirmationsData.getRandomAffirmation(widget.selectedAgeRange);
-    _currentBackgroundIndex = DateTime.now().millisecondsSinceEpoch % _backgroundImages.length;
-    
+    _setupAnimations();
+    _loadDailyAffirmation();
+  }
+
+  void _setupAnimations() {
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -63,8 +58,6 @@ class _AffirmationScreenState extends State<AffirmationScreen>
     _sparkleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _sparkleController, curve: Curves.easeInOut),
     );
-    
-    _startAnimations();
   }
 
   @override
@@ -75,28 +68,73 @@ class _AffirmationScreenState extends State<AffirmationScreen>
     super.dispose();
   }
 
+  Future<void> _loadDailyAffirmation() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+      
+      final affirmation = await AffirmationsData.getDailyAffirmation(widget.selectedAgeRange);
+      
+      if (mounted) {
+        setState(() {
+          _currentAffirmation = affirmation;
+          _isLoading = false;
+        });
+        _startAnimations();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load affirmation. Please try again.';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshAffirmation() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+      
+      HapticFeedback.mediumImpact();
+      
+      final affirmation = await AffirmationsData.getRandomAffirmation(widget.selectedAgeRange);
+      
+      if (mounted) {
+        setState(() {
+          _currentAffirmation = affirmation;
+          _isLoading = false;
+        });
+        
+        _fadeController.reset();
+        _scaleController.reset();
+        _sparkleController.reset();
+        
+        _startAnimations();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to generate new affirmation. Please try again.';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   void _startAnimations() {
     _fadeController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
-      _scaleController.forward();
+      if (mounted) _scaleController.forward();
     });
     Future.delayed(const Duration(milliseconds: 500), () {
-      _sparkleController.repeat(reverse: true);
+      if (mounted) _sparkleController.repeat(reverse: true);
     });
-  }
-
-  void _refreshAffirmation() {
-    setState(() {
-      _currentAffirmation = AffirmationsData.getRandomAffirmation(widget.selectedAgeRange);
-      _currentBackgroundIndex = (_currentBackgroundIndex + 1) % _backgroundImages.length;
-    });
-    
-    _fadeController.reset();
-    _scaleController.reset();
-    _sparkleController.reset();
-    
-    HapticFeedback.mediumImpact();
-    _startAnimations();
   }
 
   Color _getAgeColor() {
@@ -114,37 +152,121 @@ class _AffirmationScreenState extends State<AffirmationScreen>
 
   @override
   Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: AppColors.backgroundYellow,
-    appBar: AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.textDark),
-        onPressed: () => Navigator.of(context).pop(),
+    return Scaffold(
+      backgroundColor: AppColors.backgroundYellow,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.textDark),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          "Today's Magical Words",
+          style: GoogleFonts.poppins(
+            color: AppColors.textDark,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: _isLoading 
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                )
+              : const Icon(Icons.refresh_rounded, color: AppColors.primary),
+            onPressed: _isLoading ? null : _refreshAffirmation,
+          ),
+        ],
       ),
-      title: Text(
-        "Today's Magical Words",
-        style: GoogleFonts.poppins(
-          color: AppColors.textDark,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading && _currentAffirmation == null) {
+      return _buildLoadingState();
+    }
+    
+    if (_error != null && _currentAffirmation == null) {
+      return _buildErrorState();
+    }
+    
+    return _buildAffirmationContent();
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(_getAgeColor()),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Generating your magical words...',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: AppColors.textDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.textDark.withAlpha((0.5 * 255).toInt()),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              _error!,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: AppColors.textDark,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            AnimatedButton(
+              text: 'Try Again',
+              onPressed: _loadDailyAffirmation,
+              backgroundColor: _getAgeColor(),
+              icon: Icons.refresh_rounded,
+              height: 50,
+            ),
+          ],
         ),
       ),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: AppColors.primary),
-          onPressed: _refreshAffirmation,
-        ),
-      ],
-    ),
-    body: FadeTransition(
+    );
+  }
+
+  Widget _buildAffirmationContent() {
+    final affirmation = _currentAffirmation!;
+    
+    return FadeTransition(
       opacity: _fadeAnimation,
       child: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage(_backgroundImages[_currentBackgroundIndex]),
+            image: AssetImage(affirmation.backgroundImageUrl),
             fit: BoxFit.cover,
           ),
         ),
@@ -164,153 +286,21 @@ class _AffirmationScreenState extends State<AffirmationScreen>
             child: Column(
               children: [
                 // Sparkle Animation
-                AnimatedBuilder(
-                  animation: _sparkleAnimation,
-                  builder: (context, child) {
-                    return SizedBox(
-                      height: 100,
-                      child: Stack(
-                        children: List.generate(5, (index) {
-                          return Positioned(
-                            top: 20 + (index * 15.0),
-                            left: 50 + (index * 60.0) + (_sparkleAnimation.value * 20),
-                            child: Opacity(
-                              opacity: _sparkleAnimation.value,
-                              child: Icon(
-                                Icons.auto_awesome,
-                                color: AppColors.warning,
-                                size: 24 - (index * 2),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    );
-                  },
-                ),
-
-                // Main Card and Buttons
+                _buildSparkleAnimation(),
+                
+                // Main Content
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    physics: BouncingScrollPhysics(),
+                    physics: const BouncingScrollPhysics(),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        ScaleTransition(
-                          scale: _scaleAnimation,
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 30),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardWhite,
-                              borderRadius: BorderRadius.circular(30),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _getAgeColor().withAlpha((0.3 * 255).toInt()),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Top Decoration
-                                Container(
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    color: _getAgeColor(),
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(30),
-                                      topRight: Radius.circular(30),
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: AnimatedBuilder(
-                                      animation: _sparkleController,
-                                      builder: (context, child) {
-                                        return Transform.scale(
-                                          scale: 1.0 + (_sparkleAnimation.value * 0.2),
-                                          child: const Icon(
-                                            Icons.auto_awesome,
-                                            color: Colors.white,
-                                            size: 48,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                // Affirmation Text
-                                Padding(
-                                  padding: const EdgeInsets.all(30),
-                                  child: Column(
-                                    children: [
-                                      Text(
-                                        _currentAffirmation.text,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: _getTextSize(),
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.textDark,
-                                          height: 1.4,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: _getAgeColor().withAlpha((0.1 * 255).toInt()),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          _currentAffirmation.category.toUpperCase(),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: _getAgeColor(),
-                                            letterSpacing: 1.2,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
+                        // Affirmation Card
+                        _buildAffirmationCard(affirmation),
+                        
                         // Action Buttons
-                        AnimatedButton(
-                          text: 'New Magical Words',
-                          onPressed: _refreshAffirmation,
-                          backgroundColor: _getAgeColor(),
-                          icon: Icons.refresh_rounded,
-                          height: 60,
-                        ),
-                        const SizedBox(height: 16),
-                        AnimatedButton(
-                          text: 'Say It Out Loud!',
-                          onPressed: () {
-                            HapticFeedback.mediumImpact();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Say: "${_currentAffirmation.text}"'),
-                                backgroundColor: _getAgeColor(),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            );
-                          },
-                          backgroundColor: AppColors.warning,
-                          icon: Icons.volume_up_rounded,
-                          height: 60,
-                        ),
-                        const SizedBox(height: 30),
+                        _buildActionButtons(),
                       ],
                     ),
                   ),
@@ -320,8 +310,273 @@ class _AffirmationScreenState extends State<AffirmationScreen>
           ),
         ),
       ),
-    ),
     );
+  }
+
+  Widget _buildSparkleAnimation() {
+    return AnimatedBuilder(
+      animation: _sparkleAnimation,
+      builder: (context, child) {
+        return SizedBox(
+          height: 100,
+          child: Stack(
+            children: List.generate(5, (index) {
+              return Positioned(
+                top: 20 + (index * 15.0),
+                left: 50 + (index * 60.0) + (_sparkleAnimation.value * 20),
+                child: Opacity(
+                  opacity: _sparkleAnimation.value,
+                  child: Icon(
+                    Icons.auto_awesome,
+                    color: AppColors.warning,
+                    size: 24 - (index * 2),
+                  ),
+                ),
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAffirmationCard(Affirmation affirmation) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 30),
+        decoration: BoxDecoration(
+          color: AppColors.cardWhite,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: _getAgeColor().withAlpha((0.3 * 255).toInt()),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Top Decoration
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: _getAgeColor(),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _sparkleController,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: 1.0 + (_sparkleAnimation.value * 0.2),
+                      child: const Icon(
+                        Icons.auto_awesome,
+                        color: Colors.white,
+                        size: 48,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            // Affirmation Text
+            Padding(
+              padding: const EdgeInsets.all(30),
+              child: Column(
+                children: [
+                  Text(
+                    affirmation.text,
+                    style: GoogleFonts.poppins(
+                      fontSize: _getTextSize(),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _getAgeColor().withAlpha((0.1 * 255).toInt()),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          affirmation.category.toUpperCase(),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _getAgeColor(),
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Icon(
+                        Icons.smart_toy_outlined,
+                        size: 16,
+                        color: _getAgeColor(),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        AnimatedButton(
+          text: 'New Magical Words',
+          onPressed: () {
+            if (!_isLoading) {
+              _refreshAffirmation();
+            }
+          },
+          backgroundColor: _getAgeColor(),
+          icon: Icons.refresh_rounded,
+          height: 60,
+        ),
+        const SizedBox(height: 16),
+        AnimatedButton(
+          text: 'Say It Out Loud!',
+          onPressed: () {
+            if (_currentAffirmation != null) {
+              HapticFeedback.mediumImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Say: "${_currentAffirmation!.text}"'),
+                  backgroundColor: _getAgeColor(),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              );
+            }
+          },
+          backgroundColor: AppColors.warning,
+          icon: Icons.volume_up_rounded,
+          height: 60,
+        ),
+        const SizedBox(height: 16),
+        AnimatedButton(
+          text: 'Choose Category',
+          onPressed: _showCategorySelector,
+          backgroundColor: AppColors.primary,
+          icon: Icons.category_outlined,
+          height: 60,
+        ),
+        const SizedBox(height: 30),
+      ],
+    );
+  }
+
+  void _showCategorySelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Choose Affirmation Category',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: AffirmationsData.getAvailableCategories().map((category) {
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _loadAffirmationByCategory(category);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _getAgeColor().withAlpha((0.1 * 255).toInt()),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getAgeColor().withAlpha((0.3 * 255).toInt()),
+                      ),
+                    ),
+                    child: Text(
+                      category.replaceAll('-', ' ').toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _getAgeColor(),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _loadAffirmationByCategory(String category) async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+      
+      final affirmation = await AffirmationsData.getAffirmationByCategory(
+        widget.selectedAgeRange, 
+        category
+      );
+      
+      if (mounted) {
+        setState(() {
+          _currentAffirmation = affirmation;
+          _isLoading = false;
+        });
+        
+        _fadeController.reset();
+        _scaleController.reset();
+        _sparkleController.reset();
+        
+        _startAnimations();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to generate affirmation for $category. Please try again.';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   double _getTextSize() {

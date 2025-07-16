@@ -1,11 +1,32 @@
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'utils/colors.dart';
 
-void main() {
-  runApp(TotoTalesApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    print("Starting Firebase initialization...");
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("Firebase initialized successfully!");
+  } catch (e) {
+    print("Firebase initialization error: $e");
+    // Continue running the app to see if we can get more details
+  }
+  
+  runApp(
+    DevicePreview(
+      enabled: true,
+      builder: (context) => TotoTalesApp(),
+    ),
+  );
 }
 
 class TotoTalesApp extends StatelessWidget {

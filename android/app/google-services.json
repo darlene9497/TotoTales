@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "257265126210",
+    "project_id": "tototales-78b9a",
+    "storage_bucket": "tototales-78b9a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:257265126210:android:b1a53da2ff897b3ac156db",
+        "android_client_info": {
+          "package_name": "com.example.toto_tales"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1AM9Y3Ji4joim0xDxbkF95d0iT_mP8JI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
