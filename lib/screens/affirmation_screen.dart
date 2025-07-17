@@ -39,7 +39,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
 
   void _configureTts() {
     _flutterTts.setLanguage("en-US");
-    _flutterTts.setSpeechRate(0.5); // Adjust for child-friendliness
+    _flutterTts.setSpeechRate(0.7); // Adjust for child-friendliness
     _flutterTts.setPitch(1.1);
   }
 
