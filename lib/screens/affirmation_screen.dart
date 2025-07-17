@@ -1,3 +1,4 @@
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,8 +16,8 @@ class AffirmationScreen extends StatefulWidget {
   State<AffirmationScreen> createState() => _AffirmationScreenState();
 }
 
-class _AffirmationScreenState extends State<AffirmationScreen>
-    with TickerProviderStateMixin {
+class _AffirmationScreenState extends State<AffirmationScreen> with TickerProviderStateMixin {
+  final FlutterTts _flutterTts = FlutterTts();
   late AnimationController _fadeController;
   late AnimationController _scaleController;
   late AnimationController _sparkleController;
@@ -33,6 +34,13 @@ class _AffirmationScreenState extends State<AffirmationScreen>
     super.initState();
     _setupAnimations();
     _loadDailyAffirmation();
+    _configureTts();
+  }
+
+  void _configureTts() {
+    _flutterTts.setLanguage("en-US");
+    _flutterTts.setSpeechRate(0.5); // Adjust for child-friendliness
+    _flutterTts.setPitch(1.1);
   }
 
   void _setupAnimations() {
@@ -109,6 +117,14 @@ class _AffirmationScreenState extends State<AffirmationScreen>
       }
     }
   }
+
+  Future<void> _speakAffirmation() async {
+    if (_currentAffirmation != null) {
+      await _flutterTts.stop();
+      await _flutterTts.speak(_currentAffirmation!.text);
+    }
+  }
+
   Future<void> _refreshAffirmation() async {
     try {
       setState(() {
@@ -455,16 +471,7 @@ class _AffirmationScreenState extends State<AffirmationScreen>
           onPressed: () {
             if (_currentAffirmation != null) {
               HapticFeedback.mediumImpact();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Say: "${_currentAffirmation!.text}"'),
-                  backgroundColor: _getAgeColor(),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              );
+              _speakAffirmation();
             }
           },
           backgroundColor: AppColors.warning,
