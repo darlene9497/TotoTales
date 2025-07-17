@@ -112,7 +112,6 @@ class _SplashScreenState extends State<SplashScreen>
           _navigateToLogin();
         }
       } catch (e) {
-        print('Error checking auth state: $e');
         // On error, navigate to login screen
         _navigateToLogin();
       }

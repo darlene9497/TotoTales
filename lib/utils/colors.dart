@@ -5,6 +5,11 @@ class AppColors {
   static const Color primary = Color(0xFF4FC3F7);
   static const Color primaryLight = Color(0xFF8BF6FF);
   static const Color primaryDark = Color(0xFF0093C4);
+
+  static const Color primaryColor = Color(0xFF6C5CE7);
+  static const Color secondaryColor = Color(0xFF74B9FF);
+  static const Color accentColor = Color(0xFFFF7675);
+  static const Color textColor = Color(0xFF2D3436);
   
   // Age Category Colors
   static const Color littleExplorers = Color(0xFFFF8A65);

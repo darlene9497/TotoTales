@@ -203,7 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showLanguageSelector() async {
-    final result = await Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => LanguageScreen(
           selectedLanguage: currentUser.preferredLanguage,

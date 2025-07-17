@@ -60,6 +60,25 @@ class _AffirmationScreenState extends State<AffirmationScreen>
     );
   }
 
+  void _handleError(dynamic error) {
+    String errorMessage;
+    
+    if (error.toString().contains('429')) {
+      errorMessage = 'Too many requests. Please wait a moment and try again.';
+    } else if (error.toString().contains('permission-denied')) {
+      errorMessage = 'Authentication required. Please sign in again.';
+    } else if (error.toString().contains('network')) {
+      errorMessage = 'Network error. Please check your internet connection.';
+    } else {
+      errorMessage = 'Something went wrong. Please try again.';
+    }
+    
+    setState(() {
+      _error = errorMessage;
+      _isLoading = false;
+    });
+  }
+
   @override
   void dispose() {
     _fadeController.dispose();
@@ -86,14 +105,10 @@ class _AffirmationScreenState extends State<AffirmationScreen>
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _error = 'Failed to load affirmation. Please try again.';
-          _isLoading = false;
-        });
+        _handleError(e);
       }
     }
   }
-
   Future<void> _refreshAffirmation() async {
     try {
       setState(() {
@@ -119,10 +134,7 @@ class _AffirmationScreenState extends State<AffirmationScreen>
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _error = 'Failed to generate new affirmation. Please try again.';
-          _isLoading = false;
-        });
+        _handleError(e);
       }
     }
   }
@@ -169,22 +181,7 @@ class _AffirmationScreenState extends State<AffirmationScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: _isLoading 
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  ),
-                )
-              : const Icon(Icons.refresh_rounded, color: AppColors.primary),
-            onPressed: _isLoading ? null : _refreshAffirmation,
-          ),
-        ],
+        centerTitle: true
       ),
       body: _buildBody(),
     );

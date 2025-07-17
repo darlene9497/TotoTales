@@ -6,7 +6,7 @@ import '../models/affirmation.dart';
 
 class GeminiService {
   static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
-  static const String _apiKey = 'AIzaSyB0000000000000000000000000000000'; // Replace with your actual API key
+  static const String _apiKey = 'AIzaSyBsNrGGEhqeSjwRtOrKexX0NPTqc3MqEL4'; // Replace with your actual API key
   
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;

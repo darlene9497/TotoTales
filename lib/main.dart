@@ -11,13 +11,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
-    print("Starting Firebase initialization...");
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print("Firebase initialized successfully!");
   } catch (e) {
-    print("Firebase initialization error: $e");
     // Continue running the app to see if we can get more details
   }
   
