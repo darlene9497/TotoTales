@@ -1,12 +1,30 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/affirmation.dart';
+import 'dart:math';
+import 'package:uuid/uuid.dart';
 
 class GeminiService {
   static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
-  static const String _apiKey = 'AIzaSyBsNrGGEhqeSjwRtOrKexX0NPTqc3MqEL4'; // Replace with your actual API key
+  static const String _apiKey = 'AIzaSyBsNrGGEhqeSjwRtOrKexX0NPTqc3MqEL4';
+
+  // Groq API
+  static const String _groqBaseUrl = 'https://api.groq.com/openai/v1/chat/completions';
+  static const String _groqApiKey = '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';
+  
+  // Hugging Face API
+  static const String _huggingFaceUrl = 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium';
+  static const String _huggingFaceKey = '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';
+  
+  // Together AI (free tier)
+  static const String _togetherBaseUrl = 'https://api.together.xyz/v1/chat/completions';
+  static const String _togetherApiKey = '4f72d90818d290ccbdaf8d7de3328d23493ebed86730ddfa58d073387eb89c9c';
+
+  static const Uuid _uuid = Uuid();
   
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -246,64 +264,6 @@ class GeminiService {
   }
 
   // Generate AI-powered story
-  static Future<Map<String, dynamic>> generateStory({
-    required String ageRange,
-    required String language,
-    required String theme,
-    String? customPrompt,
-  }) async {
-    try {
-      final prompt = _buildStoryPrompt(ageRange, language, theme, customPrompt);
-      
-      final response = await http.post(
-        Uri.parse('$_baseUrl?key=$_apiKey'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'contents': [{
-            'parts': [{
-              'text': prompt
-            }]
-          }],
-          'generationConfig': {
-            'temperature': 0.8,
-            'topK': 40,
-            'topP': 0.95,
-            'maxOutputTokens': 1000,
-          }
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final generatedText = data['candidates'][0]['content']['parts'][0]['text'];
-        
-        // Parse the generated story
-        final storyData = _parseGeneratedStory(generatedText, ageRange, language, theme);
-        
-        // Save to Firebase if user is logged in
-        if (_auth.currentUser != null) {
-          await _saveStoryToFirebase(storyData);
-        }
-        
-        return storyData;
-      } else {
-        throw Exception('Failed to generate story: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error generating story: $e');
-      return _getFallbackStory(ageRange, language, theme);
-    }
-  }
-
-  // Helper method to check if two dates are the same day
-  static bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-           date1.month == date2.month &&
-           date1.day == date2.day;
-  }
-
   static String _buildPrompt(String ageRange, String category) {
     String ageContext = '';
     String examples = '';
@@ -343,7 +303,8 @@ Generate only the affirmation text, nothing else.
   static String _buildStoryPrompt(String ageRange, String language, String theme, String? customPrompt) {
     String ageContext = '';
     String languageInstruction = '';
-    
+    final random = Random();
+    final paragraphCount = 10 + random.nextInt(31); // 10 to 40
     switch (ageRange) {
       case 'Ages 3-5':
         ageContext = 'very young children (ages 3-5) with simple vocabulary, short sentences, and basic concepts';
@@ -361,11 +322,12 @@ Generate only the affirmation text, nothing else.
     }
 
     String prompt = customPrompt ?? '''
-Create a short, engaging story for $ageContext about $theme.
+Create a long, engaging story for $ageContext about $theme.
 $languageInstruction
 
 Requirements:
-- Story should be 3-5 short paragraphs
+- Story should be $paragraphCount short paragraphs (each paragraph will be a page)
+- Each paragraph should describe a different scene or moment
 - Include a clear beginning, middle, and end
 - Have a positive message or lesson
 - Use simple, age-appropriate language
@@ -382,6 +344,37 @@ LESSON: [Main lesson or message]
     return prompt;
   }
 
+  // Generate a cartoon/child-friendly image for a given text using Gemini
+  static Future<String> generateImageForText(String text) async {
+    final imagePrompt = 'Create a cartoon, child-friendly illustration for the following scene: $text';
+    final response = await http.post(
+      Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=$_apiKey'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'contents': [{
+          'parts': [{ 'text': imagePrompt }]
+        }],
+        'generationConfig': {
+          'temperature': 0.7,
+          'topK': 20,
+          'topP': 0.9,
+          'maxOutputTokens': 512,
+        }
+      }),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      // Assume the image URL is in the first candidate's content (adjust if needed)
+      final imageUrl = data['candidates'][0]['content']['parts'][0]['text'];
+      return imageUrl;
+    } else {
+      // Fallback: return a random background
+      return _getRandomBackground();
+    }
+  }
+
   static String _cleanAffirmationText(String text) {
     // Remove any extra formatting, quotes, or explanations
     String cleaned = text.trim();
@@ -396,7 +389,7 @@ LESSON: [Main lesson or message]
     
     // Take only the first sentence if multiple sentences
     if (cleaned.contains('.')) {
-      cleaned = cleaned.split('.')[0] + '!';
+      cleaned = '${cleaned.split('.')[0]}!';
     }
     
     // Ensure it ends with an exclamation mark
@@ -407,35 +400,224 @@ LESSON: [Main lesson or message]
     return cleaned;
   }
 
+  static Future<Map<String, dynamic>> generateStory({
+    required String ageRange,
+    required String language,
+    required String theme,
+    String? customPrompt,
+  }) async {
+    final prompt = _buildStoryPrompt(ageRange, language, theme, customPrompt);
+    
+    // Try multiple AI services in order of preference
+    final services = [
+      () => _generateWithGroq(prompt),
+      () => _generateWithTogether(prompt),
+      () => _generateWithHuggingFace(prompt),
+      () => _generateFallbackStory(ageRange, language, theme),
+    ];
+    
+    for (final service in services) {
+      try {
+        final result = await service();
+        return _formatStoryResponse(result, ageRange, language, theme);
+      } catch (e) {
+        print('Story generation attempt failed: $e');
+        continue;
+      }
+    }
+    
+    // If all services fail, return a template story
+    return _generateTemplateStory(ageRange, language, theme);
+  }
+
+  /// Generate story using Groq API (fastest free option)
+  static Future<String> _generateWithGroq(String prompt) async {
+    final response = await http.post(
+      Uri.parse(_groqBaseUrl),
+      headers: {
+        'Authorization': 'Bearer $_groqApiKey',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'model': 'llama3-8b-8192', // Fast and good quality
+        'messages': [
+          {
+            'role': 'system',
+            'content': 'You are a creative children\'s story writer. Create engaging, age-appropriate stories with clear moral lessons.',
+          },
+          {
+            'role': 'user',
+            'content': prompt,
+          }
+        ],
+        'max_tokens': 1500,
+        'temperature': 0.8,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['choices'][0]['message']['content'];
+    } else {
+      throw Exception('Groq API error: ${response.statusCode}');
+    }
+  }
+
+  /// Generate story using Together AI
+  static Future<String> _generateWithTogether(String prompt) async {
+    final response = await http.post(
+      Uri.parse(_togetherBaseUrl),
+      headers: {
+        'Authorization': 'Bearer $_togetherApiKey',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'model': 'mistralai/Mistral-7B-Instruct-v0.1',
+        'messages': [
+          {
+            'role': 'system',
+            'content': 'You are a creative children\'s story writer specializing in age-appropriate content.',
+          },
+          {
+            'role': 'user',
+            'content': prompt,
+          }
+        ],
+        'max_tokens': 1200,
+        'temperature': 0.7,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['choices'][0]['message']['content'];
+    } else {
+      throw Exception('Together AI error: ${response.statusCode}');
+    }
+  }
+
+  /// Generate story using Hugging Face
+  static Future<String> _generateWithHuggingFace(String prompt) async {
+    final response = await http.post(
+      Uri.parse(_huggingFaceUrl),
+      headers: {
+        'Authorization': 'Bearer $_huggingFaceKey',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'inputs': prompt,
+        'parameters': {
+          'max_length': 1000,
+          'temperature': 0.8,
+          'do_sample': true,
+        },
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data[0]['generated_text'];
+    } else {
+      throw Exception('Hugging Face API error: ${response.statusCode}');
+    }
+  }
+
+  // Helper to wrap _getFallbackStory for use in generateStory
+  static Future<Map<String, dynamic>> _generateFallbackStory(String ageRange, String language, String theme) async {
+    return _getFallbackStory(ageRange, language, theme);
+  }
+
+  // Helper to format the story response using _parseGeneratedStory
+  static Map<String, dynamic> _formatStoryResponse(dynamic result, String ageRange, String language, String theme) {
+    if (result is Map<String, dynamic>) {
+      return result;
+    } else if (result is String) {
+      return _parseGeneratedStory(result, ageRange, language, theme);
+    } else {
+      return _getFallbackStory(ageRange, language, theme);
+    }
+  }
+
+  // Simple template story if all else fails
+  static Map<String, dynamic> _generateTemplateStory(String ageRange, String language, String theme) {
+    return {
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'title': 'Untitled Story',
+      'content': 'Once upon a time, there was a wonderful adventure about $theme. The story was perfect for $ageRange children and was told in $language.',
+      'lesson': 'Every day brings new adventures and learning!',
+      'ageRange': ageRange,
+      'language': language,
+      'theme': theme,
+      'createdAt': DateTime.now(),
+      'backgroundImageUrl': _getRandomBackground(),
+    };
+  }
+
+  static String getFallbackLesson(String theme) {
+    switch (theme.toLowerCase()) {
+      case 'kindness':
+        return 'Always be kind to others!';
+      case 'friendship':
+        return 'Being a good friend makes life magical!';
+      case 'courage':
+        return 'Be brave and face your fears!';
+      case 'adventure':
+        return 'Every adventure teaches us something new!';
+      case 'animals':
+        return 'Take care of animals and nature!';
+      case 'imagination':
+        return 'Let your imagination soar!';
+      case 'helping':
+        return 'Helping others makes the world better!';
+      case 'sharing':
+        return 'Sharing brings happiness to everyone!';
+      case 'nature':
+        return 'Respect and enjoy the beauty of nature!';
+      case 'dreams':
+        return 'Dream big and believe in yourself!';
+      case 'space':
+        return 'Explore the universe with curiosity!';
+      case 'magic':
+        return 'Magic is everywhere if you believe!';
+      default:
+        return 'Every day brings new adventures and learning!';
+    }
+  }
+
   static Map<String, dynamic> _parseGeneratedStory(String generatedText, String ageRange, String language, String theme) {
     try {
       String title = '';
-      String story = '';
       String lesson = '';
-      
       List<String> lines = generatedText.split('\n');
-      
+      List<String> storyLines = [];
       for (String line in lines) {
-        line = line.trim();
-        if (line.startsWith('TITLE:')) {
-          title = line.substring(6).trim();
-        } else if (line.startsWith('STORY:')) {
-          story = line.substring(6).trim();
-        } else if (line.startsWith('LESSON:')) {
-          lesson = line.substring(7).trim();
-        } else if (story.isNotEmpty && !line.startsWith('LESSON:')) {
-          // Continue building story content
-          story += '\n\n' + line;
+        String cleanLine = line.trim();
+        if (cleanLine.startsWith('TITLE:') || cleanLine.startsWith('**TITLE:**')) {
+          // Extract title, remove asterisks, 'TITLE:', and quotes
+          title = cleanLine.replaceAll(RegExp(r'\*|TITLE:|:'), '').trim();
+          title = title.replaceAll(RegExp(r'^["\t]|["\t]$'), '').trim();
+        } else if (cleanLine.startsWith('LESSON:')) {
+          lesson = cleanLine.replaceAll(RegExp(r'\*|LESSON:|:'), '').trim();
+        } else if (cleanLine.isNotEmpty &&
+                   !cleanLine.startsWith('PAGE') &&
+                   !cleanLine.toUpperCase().contains('TITLE') &&
+                   !cleanLine.toUpperCase().contains('LESSON')) {
+          // Remove asterisks, markdown, and numbering
+          cleanLine = cleanLine.replaceAll(RegExp(r'\*'), '').replaceAll(RegExp(r'^\d+\.\s*'), '').trim();
+          // Filter out 'STORY:' or 'STORY' lines
+          if (cleanLine.toLowerCase() != 'story:' && cleanLine.toLowerCase() != 'story') {
+            storyLines.add(cleanLine);
+          }
         }
       }
-      
-      // If parsing failed, use the entire text as story
-      if (title.isEmpty || story.isEmpty) {
-        title = 'A Special Story';
-        story = generatedText;
-        lesson = 'Every day brings new adventures and learning!';
+      if (title.isEmpty) {
+        // Fallback: use first non-empty line as title
+        title = storyLines.isNotEmpty ? storyLines.removeAt(0) : 'Untitled Story';
       }
-      
+      String story = storyLines.join('\n\n');
+      if (lesson.isEmpty) {
+        lesson = getFallbackLesson(theme);
+      }
       return {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'title': title,
@@ -469,6 +651,8 @@ LESSON: [Main lesson or message]
         'ageRange': storyData['ageRange'],
         'language': storyData['language'],
         'theme': storyData['theme'],
+        'authorId': FirebaseAuth.instance.currentUser!.uid,
+        'pageImages': storyData['pageImages'],
         'backgroundImageUrl': storyData['backgroundImageUrl'],
         'createdAt': FieldValue.serverTimestamp(),
         'isCustomGenerated': true,
@@ -556,7 +740,7 @@ LESSON: [Main lesson or message]
     
     return {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'title': 'A Special Story',
+      'title': 'Untitled Story',
       'content': storyContent,
       'lesson': 'Every day brings new adventures and learning!',
       'ageRange': ageRange,
@@ -598,5 +782,12 @@ LESSON: [Main lesson or message]
       print('Error getting user stories: $e');
       return [];
     }
+  }
+
+  // Helper method to check if two dates are the same day
+  static bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+           date1.month == date2.month &&
+           date1.day == date2.day;
   }
 }

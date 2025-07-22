@@ -1,4 +1,4 @@
-name: tototales
+name: toto_tales
 description: A new Flutter project.
 publish_to: 'none'
 
@@ -24,6 +24,8 @@ dependencies:
   connectivity_plus: ^5.0.2
   device_preview: ^1.1.0
   flutter_tts: ^3.8.4
+  uuid: ^4.1.0
+  cached_network_image: ^3.3.0 
 
   # Firebase & Google sign-in (Web-ready)
   firebase_core: ^2.30.0
@@ -33,6 +35,9 @@ dependencies:
   google_sign_in: ^6.1.6
   js: ^0.6.7
   share_plus: ^10.0.0
+
+  path_provider: ^2.1.1
+  sqflite: ^2.3.0   
 
 dev_dependencies:
   flutter_test:
@@ -47,4 +52,5 @@ flutter:
 
   assets:
     - assets/images/backgrounds/
+    - assets/images/story_bgs/
     - assets/icons/

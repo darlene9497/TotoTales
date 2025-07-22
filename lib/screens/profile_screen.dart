@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, avoid_print
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,7 +8,14 @@ import '../utils/constants.dart';
 import '../widgets/animated_button.dart';
 import '../models/user.dart';
 import '../screens/language_screen.dart';
-import '../screens/login_screen.dart'; // Add this import
+import '../screens/login_screen.dart';
+import '../services/story_save_service.dart';
+import '../models/story.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import '../services/profile_service.dart';
+import '../screens/story_reader_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final User? user;
@@ -639,7 +647,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                               child: _buildStatCard(
                                 icon: Icons.menu_book_rounded,
                                 label: 'Stories Read',
-                                value: '${currentUser.completedStories.length}',
+                                value: FutureBuilder<int>(
+                                  future: ProfileService.getCompletedStories().then((stories) => stories.length),
+                                  builder: (context, snapshot) {
+                                    if (!snapshot.hasData) {
+                                      return Text('0', style: GoogleFonts.poppins(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.brightLearners,
+                                      ));
+                                    }
+                                    return Text('${snapshot.data}', style: GoogleFonts.poppins(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.brightLearners,
+                                    ));
+                                  },
+                                ),
                                 color: AppColors.brightLearners,
                               ),
                             ),
@@ -648,7 +672,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                               child: _buildStatCard(
                                 icon: Icons.star_rounded,
                                 label: 'Level',
-                                value: _getReadingLevel(),
+                                value: Text(_getReadingLevel(), style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.premiumGold,
+                                )),
                                 color: AppColors.premiumGold,
                               ),
                             ),
@@ -661,7 +689,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                               child: _buildStatCard(
                                 icon: Icons.calendar_today_rounded,
                                 label: 'Reading Days',
-                                value: '${_getReadingDays()}',
+                                value: Text('${_getReadingDays()}', style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.littleExplorers,
+                                )),
                                 color: AppColors.littleExplorers,
                               ),
                             ),
@@ -670,7 +702,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                               child: _buildStatCard(
                                 icon: Icons.language_rounded,
                                 label: 'Language',
-                                value: currentUser.preferredLanguage,
+                                value: Text(currentUser.preferredLanguage, style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.juniorDreamers,
+                                )),
                                 color: AppColors.juniorDreamers,
                               ),
                             ),
@@ -681,7 +717,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   
                   const SizedBox(height: 24),
-                  
+                  // Saved Stories Section
+                  _buildSavedStoriesSection(),
+                  const SizedBox(height: 24),
                   // Settings Section
                   Container(
                     decoration: BoxDecoration(
@@ -780,7 +818,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildStatCard({
     required IconData icon,
     required String label,
-    required String value,
+    required Widget value,
     required Color color,
   }) {
     return Container(
@@ -801,14 +839,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             size: 24,
           ),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
+          value,
           Text(
             label,
             style: GoogleFonts.poppins(
@@ -897,5 +928,144 @@ class _ProfileScreenState extends State<ProfileScreen>
     // Calculate days since first activity (mock calculation)
     final daysSinceJoined = DateTime.now().difference(currentUser.lastActive).inDays;
     return daysSinceJoined > 0 ? daysSinceJoined : 1;
+  }
+
+  Widget _buildSavedStoriesSection() {
+    return FutureBuilder<List<Story>>(
+      future: ProfileService.getFavoriteStories(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
+        final stories = snapshot.data ?? [];
+        if (stories.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadowLight,
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.star_border_rounded, color: AppColors.primary, size: 40),
+                SizedBox(height: 8),
+                Text('No saved stories yet',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                SizedBox(height: 4),
+                Text('Tap the star on a story to save it!',
+                  style: GoogleFonts.poppins(color: AppColors.textMedium, fontSize: 13)),
+              ],
+            ),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Saved Stories',
+              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+            SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: stories.length,
+              itemBuilder: (context, index) {
+                final story = stories[index];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StoryReaderScreen(story: story),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.shadowLight,
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                            child: Image.asset(
+                              story.coverImageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: AppColors.primary.withOpacity(0.1),
+                                child: Icon(Icons.book, color: AppColors.primary, size: 32),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  story.title,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textDark,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  story.category,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<int> _getCompletedStoriesCount() async {
+    final completed = await ProfileService.getCompletedStories();
+    return completed.length;
   }
 }

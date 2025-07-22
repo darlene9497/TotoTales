@@ -1,190 +1,156 @@
-import 'package:flutter/material.dart';
-import '../utils/constants.dart';
+// ignore_for_file: deprecated_member_use
 
-class AgeCategoryCard extends StatefulWidget {
+import 'package:flutter/material.dart';
+
+class AgeCategoryCard extends StatelessWidget {
   final String emoji;
   final String title;
   final String ageRange;
   final String description;
   final Color primaryColor;
   final Color secondaryColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final VoidCallback? onLockedTap;
+  final bool isEnabled;
 
   const AgeCategoryCard({
-    super.key,
+    Key? key,
     required this.emoji,
     required this.title,
     required this.ageRange,
     required this.description,
     required this.primaryColor,
     required this.secondaryColor,
-    required this.onTap,
-  });
-
-  @override
-  _AgeCategoryCardState createState() => _AgeCategoryCardState();
-}
-
-class _AgeCategoryCardState extends State<AgeCategoryCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _elevationAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
-
-    _elevationAnimation = Tween<double>(
-      begin: 8.0,
-      end: 4.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+    this.onTap,
+    this.onLockedTap,
+    this.isEnabled = true,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) {
-        _controller.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _controller.reverse(),
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    widget.primaryColor,
-                    widget.secondaryColor,
+      onTap: isEnabled ? onTap : onLockedTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isEnabled
+                ? [primaryColor, secondaryColor]
+                : [
+                    primaryColor.withOpacity(0.3),
+                    secondaryColor.withOpacity(0.3),
                   ],
-                ),
-                borderRadius:
-                    BorderRadius.circular(AppConstants.cardBorderRadius),
-                boxShadow: [
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isEnabled
+              ? [
                   BoxShadow(
-                    color: widget.primaryColor.withAlpha((0.3 * 255).toInt()),
-                    blurRadius: _elevationAnimation.value,
-                    offset: Offset(0, _elevationAnimation.value / 2),
+                    color: primaryColor.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ],
-              ),
-              child: Stack(
-                children: [
-                  // Background pattern
-                  Positioned(
-                    right: -20,
-                    top: -20,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withAlpha((0.1 * 255).toInt()),
+        ),
+        child: Stack(
+          children: [
+            // Main content
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      emoji,
+                      style: TextStyle(
+                        fontSize: 32,
+                        color: isEnabled ? Colors.white : Colors.white.withOpacity(0.5),
                       ),
                     ),
-                  ),
-                  // Content
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Emoji
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha((0.2 * 255).toInt()),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Center(
-                          child: Text(
-                            widget.emoji,
-                            style: TextStyle(fontSize: 30),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isEnabled ? Colors.white : Colors.white.withOpacity(0.5),
+                            ),
                           ),
-                        ),
-                      ),
-                      SizedBox(width: 20),
-
-                      // Text Content
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.title,
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                          const SizedBox(height: 4),
+                          Text(
+                            ageRange,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isEnabled 
+                                  ? Colors.white.withOpacity(0.9)
+                                  : Colors.white.withOpacity(0.4),
+                              fontWeight: FontWeight.w500,
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              widget.ageRange,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color:
-                                    Colors.white.withAlpha((0.9 * 255).toInt()),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              widget.description,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color:
-                                    Colors.white.withAlpha((0.8 * 255).toInt()),
-                                fontWeight: FontWeight.w400,
-                              ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-
-                      // Arrow icon
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isEnabled 
+                        ? Colors.white.withOpacity(0.9)
+                        : Colors.white.withOpacity(0.4),
+                    height: 1.4,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        },
+            
+            // Lock icon overlay for disabled cards
+            if (!isEnabled)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.lock,
+                    color: Colors.white.withOpacity(0.8),
+                    size: 20,
+                  ),
+                ),
+              ),
+              
+            // Subtle overlay for disabled state
+            if (!isEnabled)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

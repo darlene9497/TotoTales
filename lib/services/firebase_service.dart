@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, avoid_print
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +15,27 @@ class AuthService {
   // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  // Helper method to convert age to age range
+  String _ageToAgeRange(String childAge) {
+    // Extract numeric age from string like "5 years old" or "Ages 6-8"
+    final RegExp ageRegex = RegExp(r'(\d+)');
+    final match = ageRegex.firstMatch(childAge);
+    
+    if (match != null) {
+      final age = int.tryParse(match.group(1)!) ?? 5;
+      if (age >= 3 && age <= 5) return '3-5';
+      if (age >= 6 && age <= 8) return '6-8';
+      if (age >= 9 && age <= 12) return '9-12';
+    }
+    
+    // Handle age range formats like "Ages 6-8"
+    if (childAge.contains('3-5')) return '3-5';
+    if (childAge.contains('6-8')) return '6-8';
+    if (childAge.contains('9-12')) return '9-12';
+    
+    return '3-5'; // Default to youngest range
+  }
+
   // Create user profile in Firestore
   Future<void> _createUserProfile(User user, {
     String? parentName,
@@ -22,12 +44,15 @@ class AuthService {
     String? preferredLanguage,
   }) async {
     try {
+      final ageRange = _ageToAgeRange(childAge ?? 'Ages 6-8');
+      
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'email': user.email,
         'parentName': parentName ?? user.displayName ?? 'Parent',
         'childName': childName ?? 'Little Explorer',
         'childAge': childAge ?? 'Ages 6-8',
+        'ageRange': ageRange, // Add age range field
         'preferredLanguage': preferredLanguage ?? 'English',
         'isPremium': false,
         'createdAt': FieldValue.serverTimestamp(),
@@ -49,56 +74,55 @@ class AuthService {
   }
 
   // Register with email and password
-  // Add this method to your AuthService class
-Future<UserCredential?> signUpWithEmailAndPassword({
-  required String email,
-  required String password,
-  required String parentName,
-  required String childName,
-  required String childAge,
-  String? preferredLanguage,
-}) async {
-  try {
-    print("Attempting to register user with email: $email");
-    
-    // Check if Firebase is initialized
-    if (Firebase.apps.isEmpty) {
-      print("ERROR: Firebase not initialized!");
-      throw Exception("Firebase not initialized");
-    }
-    
-    print("Firebase apps available: ${Firebase.apps.length}");
-    print("Current Firebase app: ${Firebase.app().name}");
-    
-    UserCredential result = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-
-    print("User registration successful!");
-    
-    User? user = result.user;
-    if (user != null) {
-      // Update display name
-      await user.updateDisplayName(parentName);
+  Future<UserCredential?> signUpWithEmailAndPassword({
+    required String email,
+    required String password,
+    required String parentName,
+    required String childName,
+    required String childAge,
+    String? preferredLanguage,
+  }) async {
+    try {
+      print("Attempting to register user with email: $email");
       
-      // Create user profile
-      await _createUserProfile(
-        user,
-        parentName: parentName,
-        childName: childName,
-        childAge: childAge,
-        preferredLanguage: preferredLanguage,
+      // Check if Firebase is initialized
+      if (Firebase.apps.isEmpty) {
+        print("ERROR: Firebase not initialized!");
+        throw Exception("Firebase not initialized");
+      }
+      
+      print("Firebase apps available: ${Firebase.apps.length}");
+      print("Current Firebase app: ${Firebase.app().name}");
+      
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
-    }
 
-    return result;
-  } catch (e) {
-    print('Error registering: $e');
-    print('Error type: ${e.runtimeType}');
-    rethrow;
+      print("User registration successful!");
+      
+      User? user = result.user;
+      if (user != null) {
+        // Update display name
+        await user.updateDisplayName(parentName);
+        
+        // Create user profile
+        await _createUserProfile(
+          user,
+          parentName: parentName,
+          childName: childName,
+          childAge: childAge,
+          preferredLanguage: preferredLanguage,
+        );
+      }
+
+      return result;
+    } catch (e) {
+      print('Error registering: $e');
+      print('Error type: ${e.runtimeType}');
+      rethrow;
+    }
   }
-}
 
   // Sign in with email and password
   Future<UserCredential?> signInWithEmailAndPassword({
@@ -186,7 +210,10 @@ Future<UserCredential?> signUpWithEmailAndPassword({
       Map<String, dynamic> updates = {};
       if (parentName != null) updates['parentName'] = parentName;
       if (childName != null) updates['childName'] = childName;
-      if (childAge != null) updates['childAge'] = childAge;
+      if (childAge != null) {
+        updates['childAge'] = childAge;
+        updates['ageRange'] = _ageToAgeRange(childAge); // Update age range when age changes
+      }
       if (preferredLanguage != null) updates['preferredLanguage'] = preferredLanguage;
 
       if (updates.isNotEmpty) {
@@ -211,12 +238,98 @@ Future<UserCredential?> signUpWithEmailAndPassword({
           .get();
 
       if (doc.exists) {
-        return doc.data() as Map<String, dynamic>;
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        // Ensure ageRange exists, create it if missing
+        if (!data.containsKey('ageRange')) {
+          String ageRange = _ageToAgeRange(data['childAge'] ?? 'Ages 6-8');
+          await _firestore
+              .collection('users')
+              .doc(_auth.currentUser!.uid)
+              .update({'ageRange': ageRange});
+          data['ageRange'] = ageRange;
+        }
+        
+        return data;
       }
     } catch (e) {
       print('Error getting user profile: $e');
     }
     return null;
+  }
+
+  // Get child's age range specifically
+  Future<String?> getChildAgeRange() async {
+    try {
+      if (_auth.currentUser == null) return null;
+
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .get();
+
+      if (doc.exists) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        String? ageRange = data['ageRange'];
+        
+        // If ageRange doesn't exist, create it from childAge
+        if (ageRange == null) {
+          ageRange = _ageToAgeRange(data['childAge'] ?? 'Ages 6-8');
+          await _firestore
+              .collection('users')
+              .doc(_auth.currentUser!.uid)
+              .update({'ageRange': ageRange});
+        }
+        
+        return ageRange;
+      }
+    } catch (e) {
+      print('Error getting child age range: $e');
+    }
+    return null;
+  }
+
+  // Update child's age range
+  Future<bool> updateChildAgeRange(String ageRange) async {
+    try {
+      if (_auth.currentUser == null) return false;
+
+      await _firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .update({
+        'ageRange': ageRange,
+        'ageRangeUpdatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      print('Error updating child age range: $e');
+      return false;
+    }
+  }
+
+  // Update child's age and automatically update age range
+  Future<bool> updateChildAge(String childAge) async {
+    try {
+      if (_auth.currentUser == null) return false;
+
+      String ageRange = _ageToAgeRange(childAge);
+      
+      await _firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .update({
+        'childAge': childAge,
+        'ageRange': ageRange,
+        'ageUpdatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      print('Error updating child age: $e');
+      return false;
+    }
   }
 
   // Delete account
@@ -360,12 +473,57 @@ Future<UserCredential?> signUpWithEmailAndPassword({
           'isPremium': userData['isPremium'] ?? false,
           'memberSince': userData['createdAt'],
           'lastLogin': userData['lastLoginAt'],
+          'ageRange': userData['ageRange'] ?? '3-5',
+          'childAge': userData['childAge'] ?? 'Ages 6-8',
         };
       }
     } catch (e) {
       print('Error getting reading stats: $e');
     }
     return {};
+  }
+
+  // Check if user profile is complete
+  Future<bool> isProfileComplete() async {
+    try {
+      Map<String, dynamic>? profile = await getUserProfile();
+      if (profile == null) return false;
+
+      return profile['parentName'] != null &&
+             profile['childName'] != null &&
+             profile['childAge'] != null &&
+             profile['ageRange'] != null;
+    } catch (e) {
+      print('Error checking profile completion: $e');
+      return false;
+    }
+  }
+
+  // Initialize user profile with age range if missing
+  Future<void> initializeProfileWithAgeRange() async {
+    try {
+      if (_auth.currentUser == null) return;
+
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .get();
+
+      if (doc.exists) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        // If ageRange is missing, add it
+        if (!data.containsKey('ageRange')) {
+          String ageRange = _ageToAgeRange(data['childAge'] ?? 'Ages 6-8');
+          await _firestore
+              .collection('users')
+              .doc(_auth.currentUser!.uid)
+              .update({'ageRange': ageRange});
+        }
+      }
+    } catch (e) {
+      print('Error initializing profile with age range: $e');
+    }
   }
 
   // Helper method to get error message

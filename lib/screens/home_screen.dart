@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
-import 'package:tototales/widgets/age_category_card.dart';
+import 'package:toto_tales/widgets/age_category_card.dart';
 import '../widgets/bottom_nav_item.dart';
 import 'story_library_screen.dart';
 import 'affirmation_screen.dart';
@@ -13,7 +13,9 @@ import 'language_screen.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String? registeredAgeRange; // Add this to receive the child's registered age
+  
+  const HomeScreen({super.key, this.registeredAgeRange});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -26,6 +28,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _headerFadeAnimation;
   late Animation<double> _starsAnimation;
   int _currentIndex = 0;
+  
+  // Default age range if not provided (you might want to handle this differently)
+  String get childAgeRange => widget.registeredAgeRange ?? '3-5';
 
   @override
   void initState() {
@@ -73,6 +78,67 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _headerController.dispose();
     _starsController.dispose();
     super.dispose();
+  }
+
+  // Helper method to check if an age category is enabled
+  bool _isAgeRangeEnabled(String ageRange) {
+    return ageRange == childAgeRange;
+  }
+
+  // Show dialog when locked card is tapped
+  void _showLockedDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.lock,
+                color: AppColors.textMedium,
+                size: 24,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Age Restricted',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'This age category is not available for you. Ask your parent to change your age range in your profile if needed.',
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textMedium,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.brightLearners,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -149,7 +215,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 description: AppConstants.littleExplorersDescription,
                                 primaryColor: AppColors.littleExplorers,
                                 secondaryColor: AppColors.littleExplorersDark,
-                                onTap: () => _navigateToStoryLibrary('3-5'),
+                                onTap: _isAgeRangeEnabled('3-5')
+                                    ? () => _navigateToStoryLibrary('3-5')
+                                    : _showLockedDialog,
                               ),
                               SizedBox(height: 20),
                               AgeCategoryCard(
@@ -159,7 +227,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 description: AppConstants.brightLearnersDescription,
                                 primaryColor: AppColors.brightLearners,
                                 secondaryColor: AppColors.brightLearnersDark,
-                                onTap: () => _navigateToStoryLibrary('6-8'),
+                                onTap: _isAgeRangeEnabled('6-8')
+                                    ? () => _navigateToStoryLibrary('6-8')
+                                    : _showLockedDialog,
                               ),
                               SizedBox(height: 20),
                               AgeCategoryCard(
@@ -169,7 +239,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 description: AppConstants.juniorDreamersDescription,
                                 primaryColor: AppColors.juniorDreamers,
                                 secondaryColor: AppColors.juniorDreamersDark,
-                                onTap: () => _navigateToStoryLibrary('9-12'),
+                                onTap: _isAgeRangeEnabled('9-12')
+                                    ? () => _navigateToStoryLibrary('9-12')
+                                    : _showLockedDialog,
                               ),
                             ],
                           ),
@@ -229,13 +301,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       case 1:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const StoryLibraryScreen()),
+          MaterialPageRoute(
+            builder: (context) => StoryLibraryScreen(selectedAgeRange: childAgeRange),
+          ),
         );
         break;
       case 2:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => AffirmationScreen(selectedAgeRange: 'Ages 3-5')),
+          MaterialPageRoute(
+            builder: (context) => AffirmationScreen(selectedAgeRange: _getAgeRangeDisplay(childAgeRange)),
+          ),
         );
         break;
       case 3:
@@ -254,15 +330,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _navigateToStoryLibrary(String ageRange) {
+    // Convert short form to long form for navigation
+    String displayAgeRange;
+    switch (ageRange) {
+      case '3-5':
+        displayAgeRange = 'Ages 3-5';
+        break;
+      case '6-8':
+        displayAgeRange = 'Ages 6-8';
+        break;
+      case '9-12':
+        displayAgeRange = 'Ages 9-12';
+        break;
+      default:
+        displayAgeRange = 'Ages 6-8';
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => StoryLibraryScreen(selectedAgeRange: ageRange),
+        builder: (context) => StoryLibraryScreen(selectedAgeRange: displayAgeRange),
       ),
     );
   }
+
+  // Helper method to convert age range to display format
+  String _getAgeRangeDisplay(String ageRange) {
+    switch (ageRange) {
+      case '3-5':
+        return 'Ages 3-5';
+      case '6-8':
+        return 'Ages 6-8';
+      case '9-12':
+        return 'Ages 9-12';
+      default:
+        return 'Ages 3-5';
+    }
+  }
 }
 
+// Keep the existing StarsPainter class unchanged
 class StarsPainter extends CustomPainter {
   final double animation;
 
