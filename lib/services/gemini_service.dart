@@ -4,27 +4,25 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/affirmation.dart';
 import 'dart:math';
-import 'package:uuid/uuid.dart';
 
 class GeminiService {
   static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
-  static const String _apiKey = 'AIzaSyBsNrGGEhqeSjwRtOrKexX0NPTqc3MqEL4';
+  static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   // Groq API
   static const String _groqBaseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-  static const String _groqApiKey = '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';
+  static String get _groqApiKey => dotenv.env['GROQ_API_KEY'] ?? '';
   
   // Hugging Face API
   static const String _huggingFaceUrl = 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium';
-  static const String _huggingFaceKey = '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';
+  static String get _huggingFaceKey => dotenv.env['HUGGING_FACE_API_KEY'] ?? '';
   
-  // Together AI (free tier)
+  // Together AI
   static const String _togetherBaseUrl = 'https://api.together.xyz/v1/chat/completions';
-  static const String _togetherApiKey = '4f72d90818d290ccbdaf8d7de3328d23493ebed86730ddfa58d073387eb89c9c';
-
-  static const Uuid _uuid = Uuid();
+  static String get _togetherApiKey => dotenv.env['TOGETHER_AI_API_KEY'] ?? '';
   
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;

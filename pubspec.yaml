@@ -54,3 +54,4 @@ flutter:
     - assets/images/backgrounds/
     - assets/images/story_bgs/
     - assets/icons/
+    - assets/.env
