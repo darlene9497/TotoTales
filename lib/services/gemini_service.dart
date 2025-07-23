@@ -269,15 +269,15 @@ class GeminiService {
     switch (ageRange) {
       case 'Ages 3-5':
         ageContext = 'very young children (ages 3-5) using simple words and concepts they understand';
-        examples = 'Examples: "I am brave!", "I am loved!", "I can do it!"';
+        examples = 'Examples: "I am brave", "I am loved", "I can do it"';
         break;
       case 'Ages 6-8':
         ageContext = 'early elementary children (ages 6-8) with slightly more complex vocabulary';
-        examples = 'Examples: "I am smart and creative!", "I believe in myself!", "I can solve problems!"';
+        examples = 'Examples: "I am smart and creative", "I believe in myself", "I can solve problems"';
         break;
       case 'Ages 9-12':
         ageContext = 'older children (ages 9-12) who can understand more sophisticated concepts';
-        examples = 'Examples: "I am capable of amazing things!", "I learn from my mistakes!", "I can make a difference!"';
+        examples = 'Examples: "I am capable of amazing things", "I learn from my mistakes", "I can make a difference"';
         break;
     }
 

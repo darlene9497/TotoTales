@@ -30,25 +30,13 @@ class _ProfileScreenState extends State<ProfileScreen>
     with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-  
-  // Sample user data - replace with actual user data
-  late User currentUser;
-  
+
+  User? currentUser;
+  bool isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    
-    // Initialize with sample data or provided user
-    currentUser = widget.user ?? User(
-      id: '1',
-      name: 'Little Explorer',
-      selectedAgeRange: '3-5',
-      preferredLanguage: 'English',
-      isPremium: false,
-      completedStories: ['1', '2', '3'],
-      lastActive: DateTime.now(),
-    );
-    
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -57,6 +45,16 @@ class _ProfileScreenState extends State<ProfileScreen>
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
     _fadeController.forward();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    await ProfileService.updateReadingStreak();
+    final user = await ProfileService.getUserProfile();
+    setState(() {
+      currentUser = user;
+      isLoading = false;
+    });
   }
 
   @override
@@ -133,21 +131,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildAgeRangeOption(String ageRange, String name, Color color) {
-    final isSelected = currentUser.selectedAgeRange == ageRange;
-    
+    final isSelected = currentUser?.selectedAgeRange == ageRange;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          currentUser = User(
-            id: currentUser.id,
-            name: currentUser.name,
-            selectedAgeRange: ageRange,
-            preferredLanguage: currentUser.preferredLanguage,
-            isPremium: currentUser.isPremium,
-            completedStories: currentUser.completedStories,
-            lastActive: currentUser.lastActive,
-          );
-        });
+      onTap: () async {
+        if (currentUser == null) return;
+        await ProfileService.updateAgeRange(ageRange);
+        await _loadUserProfile();
         Navigator.of(context).pop();
         HapticFeedback.selectionClick();
       },
@@ -211,20 +200,24 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showLanguageSelector() async {
+    if (currentUser == null) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => LanguageScreen(
-          selectedLanguage: currentUser.preferredLanguage,
-          onLanguageSelected: (language) {
+          selectedLanguage: currentUser!.preferredLanguage,
+          onLanguageSelected: (language) async {
+            // You may want to update language in Firestore as well
             setState(() {
               currentUser = User(
-                id: currentUser.id,
-                name: currentUser.name,
-                selectedAgeRange: currentUser.selectedAgeRange,
+                id: currentUser!.id,
+                name: currentUser!.name,
+                selectedAgeRange: currentUser!.selectedAgeRange,
                 preferredLanguage: language,
-                isPremium: currentUser.isPremium,
-                completedStories: currentUser.completedStories,
-                lastActive: currentUser.lastActive,
+                isPremium: currentUser!.isPremium,
+                completedStories: currentUser!.completedStories,
+                lastActive: currentUser!.lastActive,
+                readingStreak: currentUser!.readingStreak,
+                lastActiveDate: currentUser!.lastActiveDate,
               );
             });
           },
@@ -534,283 +527,279 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.defaultPadding),
-          child: AnimationLimiter(
-            child: Column(
-              children: AnimationConfiguration.toStaggeredList(
-                duration: const Duration(milliseconds: 375),
-                childAnimationBuilder: (widget) => SlideAnimation(
-                  horizontalOffset: 50.0,
-                  child: FadeInAnimation(child: widget),
-                ),
-                children: [
-                  // Profile Header
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowLight,
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
+        child: isLoading || currentUser == null
+            ? Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                child: AnimationLimiter(
+                  child: Column(
+                    children: AnimationConfiguration.toStaggeredList(
+                      duration: const Duration(milliseconds: 375),
+                      childAnimationBuilder: (widget) => SlideAnimation(
+                        horizontalOffset: 50.0,
+                        child: FadeInAnimation(child: widget),
+                      ),
                       children: [
-                        // Avatar
+                        // Profile Header
                         Container(
-                          width: 80,
-                          height: 80,
+                          padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: _getAgeRangeColor(currentUser.selectedAgeRange).withAlpha((0.1 * 255).toInt()),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _getAgeRangeColor(currentUser.selectedAgeRange),
-                              width: 3,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              currentUser.name.isNotEmpty ? currentUser.name.substring(0, 1).toUpperCase() : '?',
-                              style: GoogleFonts.poppins(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: _getAgeRangeColor(currentUser.selectedAgeRange),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.shadowLight,
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
                               ),
-                            ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          currentUser.name,
-                          style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: _getAgeRangeColor(currentUser.selectedAgeRange).withAlpha((0.1 * 255).toInt()),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _getAgeRangeDisplayName(currentUser.selectedAgeRange),
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: _getAgeRangeColor(currentUser.selectedAgeRange),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Stats Section
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowLight,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Reading Progress',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.menu_book_rounded,
-                                label: 'Stories Read',
-                                value: FutureBuilder<int>(
-                                  future: ProfileService.getCompletedStories().then((stories) => stories.length),
-                                  builder: (context, snapshot) {
-                                    if (!snapshot.hasData) {
-                                      return Text('0', style: GoogleFonts.poppins(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.brightLearners,
-                                      ));
-                                    }
-                                    return Text('${snapshot.data}', style: GoogleFonts.poppins(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.brightLearners,
-                                    ));
-                                  },
-                                ),
-                                color: AppColors.brightLearners,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.star_rounded,
-                                label: 'Level',
-                                value: Text(_getReadingLevel(), style: GoogleFonts.poppins(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.premiumGold,
-                                )),
-                                color: AppColors.premiumGold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.calendar_today_rounded,
-                                label: 'Reading Days',
-                                value: Text('${_getReadingDays()}', style: GoogleFonts.poppins(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.littleExplorers,
-                                )),
-                                color: AppColors.littleExplorers,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.language_rounded,
-                                label: 'Language',
-                                value: Text(currentUser.preferredLanguage, style: GoogleFonts.poppins(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.juniorDreamers,
-                                )),
-                                color: AppColors.juniorDreamers,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  // Saved Stories Section
-                  _buildSavedStoriesSection(),
-                  const SizedBox(height: 24),
-                  // Settings Section
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowLight,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSettingsItem(
-                          icon: Icons.cake_rounded,
-                          title: 'Change Age Range',
-                          subtitle: 'Currently: ${_getAgeRangeDisplayName(currentUser.selectedAgeRange)}',
-                          onTap: _showAgeRangeDialog,
-                        ),
-                        const Divider(height: 1),
-                        _buildSettingsItem(
-                          icon: Icons.language_rounded,
-                          title: 'Language',
-                          subtitle: 'Currently: ${currentUser.preferredLanguage}',
-                          onTap: _showLanguageSelector,
-                        ),
-                        const Divider(height: 1),
-                        _buildSettingsItem(
-                          icon: Icons.stars_rounded,
-                          title: 'Premium Features',
-                          subtitle: currentUser.isPremium ? 'Premium Active' : 'Upgrade for more content',
-                          onTap: _showPremiumDialog,
-                          trailing: currentUser.isPremium 
-                              ? Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.premiumGold.withAlpha((0.1 * 255).toInt()),
-                                    borderRadius: BorderRadius.circular(12),
+                          child: Column(
+                            children: [
+                              // Avatar
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: _getAgeRangeColor(currentUser!.selectedAgeRange).withAlpha((0.1 * 255).toInt()),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: _getAgeRangeColor(currentUser!.selectedAgeRange),
+                                    width: 3,
                                   ),
+                                ),
+                                child: Center(
                                   child: Text(
-                                    'PREMIUM',
+                                    currentUser!.name.isNotEmpty ? currentUser!.name.substring(0, 1).toUpperCase() : '?',
                                     style: GoogleFonts.poppins(
-                                      fontSize: 10,
+                                      fontSize: 32,
                                       fontWeight: FontWeight.bold,
+                                      color: _getAgeRangeColor(currentUser!.selectedAgeRange),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                currentUser!.name,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _getAgeRangeColor(currentUser!.selectedAgeRange).withAlpha((0.1 * 255).toInt()),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  _getAgeRangeDisplayName(currentUser!.selectedAgeRange),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: _getAgeRangeColor(currentUser!.selectedAgeRange),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Stats Section
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.shadowLight,
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Reading Progress',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildStatCard(
+                                      icon: Icons.menu_book_rounded,
+                                      label: 'Stories Read',
+                                      value: Text(
+                                        '${currentUser!.completedStories.length}',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.brightLearners,
+                                        ),
+                                      ),
+                                      color: AppColors.brightLearners,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildStatCard(
+                                      icon: Icons.star_rounded,
+                                      label: 'Level',
+                                      value: Text(
+                                        ProfileService.getReadingLevel(currentUser!.completedStories.length),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.premiumGold,
+                                        ),
+                                      ),
                                       color: AppColors.premiumGold,
                                     ),
                                   ),
-                                )
-                              : Icon(
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildStatCard(
+                                      icon: Icons.calendar_today_rounded,
+                                      label: 'Reading Days',
+                                      value: Text(
+                                        '${currentUser!.readingStreak}',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.littleExplorers,
+                                        ),
+                                      ),
+                                      color: AppColors.littleExplorers,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildStatCard(
+                                      icon: Icons.language_rounded,
+                                      label: 'Language',
+                                      value: Text(
+                                        currentUser!.preferredLanguage,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.juniorDreamers,
+                                        ),
+                                      ),
+                                      color: AppColors.juniorDreamers,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Saved Stories Section
+                        _buildSavedStoriesSection(),
+                        const SizedBox(height: 24),
+                        // Settings Section
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.shadowLight,
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSettingsItem(
+                                icon: Icons.cake_rounded,
+                                title: 'Change Age Range',
+                                subtitle: 'Currently: ${_getAgeRangeDisplayName(currentUser!.selectedAgeRange)}',
+                                onTap: _showAgeRangeDialog,
+                              ),
+                              const Divider(height: 1),
+                              _buildSettingsItem(
+                                icon: Icons.language_rounded,
+                                title: 'Language',
+                                subtitle: 'Currently: ${currentUser!.preferredLanguage}',
+                                onTap: _showLanguageSelector,
+                              ),
+                              const Divider(height: 1),
+                              _buildSettingsItem(
+                                icon: Icons.stars_rounded,
+                                title: 'Premium Features',
+                                subtitle: currentUser!.isPremium ? 'Premium Active' : 'Upgrade for more content',
+                                onTap: _showPremiumDialog,
+                                trailing: currentUser!.isPremium
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.premiumGold.withAlpha((0.1 * 255).toInt()),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          'PREMIUM',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.premiumGold,
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.arrow_forward_ios_rounded,
+                                        size: 16,
+                                        color: AppColors.textMedium,
+                                      ),
+                              ),
+                              const Divider(height: 1),
+                              _buildSettingsItem(
+                                icon: Icons.logout_rounded,
+                                title: 'Sign Out',
+                                subtitle: 'Sign out of your account',
+                                onTap: _showLogoutBottomSheet,
+                                trailing: Icon(
                                   Icons.arrow_forward_ios_rounded,
                                   size: 16,
                                   color: AppColors.textMedium,
                                 ),
-                        ),
-                        const Divider(height: 1),
-                        _buildSettingsItem(
-                          icon: Icons.logout_rounded,
-                          title: 'Sign Out',
-                          subtitle: 'Sign out of your account',
-                          onTap: _showLogoutBottomSheet,
-                          trailing: Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 16,
-                            color: AppColors.textMedium,
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: 24),
+                        // Premium Upgrade Button (if not premium)
+                        if (!currentUser!.isPremium)
+                          AnimatedButton(
+                            text: 'Upgrade to Premium',
+                            onPressed: _showPremiumDialog,
+                            backgroundColor: AppColors.premiumGold,
+                            textColor: Colors.white,
+                            icon: Icons.stars_rounded,
+                          ),
+                        const SizedBox(height: 40),
                       ],
                     ),
                   ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Premium Upgrade Button (if not premium)
-                  if (!currentUser.isPremium)
-                    AnimatedButton(
-                      text: 'Upgrade to Premium',
-                      onPressed: _showPremiumDialog,
-                      backgroundColor: AppColors.premiumGold,
-                      textColor: Colors.white,
-                      icon: Icons.stars_rounded,
-                    ),
-                  
-                  const SizedBox(height: 40),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -914,20 +903,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
       ),
     );
-  }
-
-  String _getReadingLevel() {
-    final storiesRead = currentUser.completedStories.length;
-    if (storiesRead < 5) return 'Beginner';
-    if (storiesRead < 15) return 'Explorer';
-    if (storiesRead < 30) return 'Adventurer';
-    return 'Master';
-  }
-
-  int _getReadingDays() {
-    // Calculate days since first activity (mock calculation)
-    final daysSinceJoined = DateTime.now().difference(currentUser.lastActive).inDays;
-    return daysSinceJoined > 0 ? daysSinceJoined : 1;
   }
 
   Widget _buildSavedStoriesSection() {

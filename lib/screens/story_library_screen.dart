@@ -449,34 +449,65 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen>
       );
     }
 
-    if (_stories.isEmpty) {
+    // Filter stories by age range unless 'All'
+    List<Map<String, dynamic>> filteredStories = _selectedAgeRange == 'All'
+        ? _stories
+        : _stories.where((story) => story['ageRange'] == _selectedAgeRange).toList();
+
+    if (filteredStories.isEmpty) {
       return SliverToBoxAdapter(child: _buildEmptyState());
     }
 
     return SliverPadding(
       padding: EdgeInsets.all(20),
-      sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.75,
-          crossAxisSpacing: 15,
-          mainAxisSpacing: 15,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            return AnimationConfiguration.staggeredGrid(
-              position: index,
-              duration: const Duration(milliseconds: 375),
-              columnCount: 2,
-              child: ScaleAnimation(
-                child: FadeInAnimation(
-                  child: _buildStoryCard(_stories[index]),
-                ),
+      sliver: SliverList(
+        delegate: SliverChildListDelegate([
+          // Label for current filter
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Text(
+              _selectedAgeRange == 'All'
+                  ? 'Showing: All Stories'
+                  : 'Showing: Ages $_selectedAgeRange',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: AppColors.textMedium,
+                fontWeight: FontWeight.w500,
               ),
-            );
-          },
-          childCount: _stories.length,
-        ),
+            ),
+          ),
+          // The grid
+          SizedBox(
+            height: 20,
+          ),
+          // The actual grid
+          SizedBox(
+            height: 500, // You may want to make this dynamic
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+              ),
+              itemCount: filteredStories.length,
+              itemBuilder: (context, index) {
+                return AnimationConfiguration.staggeredGrid(
+                  position: index,
+                  duration: const Duration(milliseconds: 375),
+                  columnCount: 2,
+                  child: ScaleAnimation(
+                    child: FadeInAnimation(
+                      child: _buildStoryCard(filteredStories[index]),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ]),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '../models/story.dart';
+import '../models/user.dart';
 
 class ProfileService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -260,6 +261,60 @@ class ProfileService {
       print('Error getting user stats: $e');
       return {'favorites': 0, 'completed': 0};
     }
+  }
+  
+  // Fetch user profile from Firestore
+  static Future<User?> getUserProfile() async {
+    try {
+      if (currentUserId == null) return null;
+      final doc = await _firestore.collection('users').doc(currentUserId!).get();
+      if (!doc.exists) return null;
+      final data = doc.data()!;
+      return User.fromFirestore(data, doc.id);
+    } catch (e) {
+      print('Error fetching user profile: $e');
+      return null;
+    }
+  }
+
+  // Update reading streak and last active date
+  static Future<void> updateReadingStreak() async {
+    if (currentUserId == null) return;
+    final userRef = _firestore.collection('users').doc(currentUserId!);
+    final doc = await userRef.get();
+    if (!doc.exists) return;
+    final data = doc.data()!;
+    final lastActiveDate = (data['lastActiveDate'] as Timestamp?)?.toDate();
+    final today = DateTime.now();
+    int streak = data['readingStreak'] ?? 1;
+    if (lastActiveDate != null) {
+      final diff = today.difference(DateTime(lastActiveDate.year, lastActiveDate.month, lastActiveDate.day)).inDays;
+      if (diff == 1) {
+        streak += 1;
+      } else if (diff > 1) {
+        streak = 1;
+      }
+    }
+    await userRef.update({
+      'lastActiveDate': today,
+      'readingStreak': streak,
+    });
+  }
+
+  // Update age range
+  static Future<void> updateAgeRange(String ageRange) async {
+    if (currentUserId == null) return;
+    await _firestore.collection('users').doc(currentUserId!).update({
+      'ageRange': ageRange,
+    });
+  }
+
+  // Get reading level based on completed stories count
+  static String getReadingLevel(int storiesRead) {
+    if (storiesRead < 5) return 'Beginner';
+    if (storiesRead < 15) return 'Explorer';
+    if (storiesRead < 30) return 'Adventurer';
+    return 'Master';
   }
   
   // Helper method to convert Firestore data to Story object
