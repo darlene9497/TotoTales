@@ -255,6 +255,32 @@ class _StoryReaderScreenState extends State<StoryReaderScreen>
     return descriptions[theme] ?? 'A wonderful story moment';
   }
 
+  // Helper for a 3-dot page indicator
+  Widget _buildPageIndicator(int pageCount, int currentPage) {
+    // Always show 3 dots: first, current, last
+    List<int> dotPages = [0, currentPage, pageCount - 1];
+    // Remove duplicates and keep order
+    dotPages = dotPages.toSet().toList()..sort();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: dotPages.map((dotPage) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        width: dotPage == currentPage ? 12 : 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: dotPage == currentPage ? Colors.white : Colors.white.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 2,
+            ),
+          ],
+        ),
+      )).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Prepare pages: first = title, last = lesson, middle = story
@@ -480,27 +506,7 @@ class _StoryReaderScreenState extends State<StoryReaderScreen>
                                       onPressed: index > 0 ? () => _pageController.previousPage(duration: Duration(milliseconds: 350), curve: Curves.easeInOut) : null,
                                     ),
                                     SizedBox(width: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: List.generate(
-                                        pages.length,
-                                        (dotIdx) => Container(
-                                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                                          width: dotIdx == index ? 12 : 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: dotIdx == index ? Colors.white : Colors.white.withOpacity(0.5),
-                                            borderRadius: BorderRadius.circular(4),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(0.2),
-                                                blurRadius: 2,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                    _buildPageIndicator(pages.length, index),
                                     SizedBox(width: 8),
                                     index < pages.length - 1
                                       ? IconButton(

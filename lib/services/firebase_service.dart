@@ -52,7 +52,7 @@ class AuthService {
         'parentName': parentName ?? user.displayName ?? 'Parent',
         'childName': childName ?? 'Little Explorer',
         'childAge': childAge ?? 'Ages 6-8',
-        'ageRange': ageRange, // Add age range field
+        'ageRange': ageRange,
         'preferredLanguage': preferredLanguage ?? 'English',
         'isPremium': false,
         'createdAt': FieldValue.serverTimestamp(),

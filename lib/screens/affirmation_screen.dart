@@ -39,8 +39,8 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
 
   void _configureTts() {
     _flutterTts.setLanguage("en-US");
-    _flutterTts.setSpeechRate(0.7); // Adjust for child-friendliness
-    _flutterTts.setPitch(1.1);
+    _flutterTts.setSpeechRate(0.55);
+    _flutterTts.setPitch(1.3);
   }
 
   void _setupAnimations() {
@@ -467,7 +467,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
         ),
         const SizedBox(height: 16),
         AnimatedButton(
-          text: 'Say It Out Loud!',
+          text: 'Say It Out Loud',
           onPressed: () {
             if (_currentAffirmation != null) {
               HapticFeedback.mediumImpact();

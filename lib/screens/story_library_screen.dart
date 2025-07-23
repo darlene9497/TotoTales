@@ -687,9 +687,14 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen>
 
   List<StoryPage> _splitStoryToPages(String content, List<String> images) {
     final paragraphs = content.split(RegExp(r'\n+'))
-        .where((p) => p.trim().isNotEmpty)
+        .where((p) {
+          final clean = p.trim().toLowerCase();
+          // Remove lines like 'page 1:', 'page 2', 'story:', etc.
+          return clean.isNotEmpty &&
+                 !RegExp(r'^page\s*\d+:?$', caseSensitive: false).hasMatch(clean) &&
+                 clean != 'story:' && clean != 'story';
+        })
         .toList();
-    
     return List.generate(paragraphs.length, (i) => StoryPage(
       pageNumber: i + 1,
       imageUrl: i < images.length ? images[i] : '',
