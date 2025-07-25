@@ -317,6 +317,20 @@ class ProfileService {
     return 'Master';
   }
   
+  // Get user's premium status
+  static Future<bool> isPremiumUser() async {
+    try {
+      if (currentUserId == null) return false;
+      final doc = await _firestore.collection('users').doc(currentUserId!).get();
+      if (!doc.exists) return false;
+      final data = doc.data()!;
+      return data['isPremium'] ?? false;
+    } catch (e) {
+      print('Error checking premium status: $e');
+      return false;
+    }
+  }
+  
   // Helper method to convert Firestore data to Story object
   static Story _mapToStory(Map<String, dynamic> data) {
     return Story(

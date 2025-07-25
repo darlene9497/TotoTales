@@ -1,4 +1,5 @@
-// ignore_for_file: deprecated_member_use, avoid_print
+// ignore_for_file: unnecessary_cast, avoid_print, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,37 +13,47 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
-class StoryLibraryScreen extends StatefulWidget {
-  final String? selectedAgeRange;
-
-  const StoryLibraryScreen({super.key, this.selectedAgeRange});
+class AgeRangeStoryScreen extends StatefulWidget {
+  final String ageRange;
+  final String? screenTitle;
+  const AgeRangeStoryScreen({Key? key, required this.ageRange, this.screenTitle}) : super(key: key);
 
   @override
-  _StoryLibraryScreenState createState() => _StoryLibraryScreenState();
+  _AgeRangeStoryScreenState createState() => _AgeRangeStoryScreenState();
 }
 
-class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProviderStateMixin {
+class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerProviderStateMixin {
   late AnimationController _headerController;
   late AnimationController _fabController;
   late Animation<Offset> _headerSlideAnimation;
   late Animation<double> _headerFadeAnimation;
   late Animation<double> _fabScaleAnimation;
 
-  String _selectedAgeRange = 'All';
   List<Map<String, dynamic>> _stories = [];
   bool _isLoading = false;
   bool _isGenerating = false;
   String _selectedLanguage = 'English';
-  Set<String> _savedStoryIds = {};
-  Set<String> _completedStoryIds = {};
   final List<String> _backgrounds = List.generate(20, (i) => 'assets/images/story_bgs/bg${i + 1}.jpg');
   final Random _random = Random();
-  String _selectedLanguageFilter = 'All';
+  Set<String> _savedStoryIds = {};
+  Set<String> _completedStoryIds = {};
+
+  Future<void> _loadUserData() async {
+    try {
+      final favoriteIds = await ProfileService.getFavoriteStoryIds();
+      final completedIds = await ProfileService.getCompletedStoryIds();
+      setState(() {
+        _savedStoryIds = favoriteIds;
+        _completedStoryIds = completedIds;
+      });
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _selectedAgeRange = widget.selectedAgeRange ?? 'All';
     _initializeAnimations();
     _loadCurrentLanguage();
     _loadStories();
@@ -72,7 +83,6 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
     _headerSlideAnimation = Tween<Offset>(
       begin: const Offset(0, -0.5),
       end: Offset.zero,
@@ -80,7 +90,6 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
       parent: _headerController,
       curve: Curves.easeOutBack,
     ));
-    
     _headerFadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -88,7 +97,6 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
       parent: _headerController,
       curve: Curves.easeIn,
     ));
-
     _fabScaleAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -96,7 +104,6 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
       parent: _fabController,
       curve: Curves.elasticOut,
     ));
-
     _headerController.forward();
     Future.delayed(Duration(milliseconds: 500), () {
       _fabController.forward();
@@ -115,16 +122,13 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
     try {
       final user = fb_auth.FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('User not logged in. Cannot load stories.');
         setState(() { _isLoading = false; });
         return;
       }
-
       final storiesRef = FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('stories');
-
       final snapshot = await storiesRef.get();
       _stories = snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -132,88 +136,12 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
           data['createdAt'] = DateTime.tryParse(data['createdAt']) ?? DateTime.now();
         }
         return data;
-      }).toList();
-
+      }).where((story) => story['ageRange'] == widget.ageRange).toList();
     } catch (e) {
       print('Error loading stories: $e');
     } finally {
       setState(() { _isLoading = false; });
     }
-  }
-
-  Future<void> _loadUserData() async {
-    try {
-      // Load favorite and completed story IDs
-      final favoriteIds = await ProfileService.getFavoriteStoryIds();
-      final completedIds = await ProfileService.getCompletedStoryIds();
-      
-      setState(() {
-        _savedStoryIds = favoriteIds;
-        _completedStoryIds = completedIds;
-      });
-    } catch (e) {
-      print('Error loading user data: $e');
-    }
-  }
-
-  Future<void> _generateInitialStories() async {
-    setState(() { _isGenerating = true; });
-    _stories.clear();
-    
-    // Get current language preference
-    final currentLanguage = await LanguageService.getCurrentLanguage();
-    setState(() {
-      _selectedLanguage = currentLanguage;
-    });
-    
-    final userAge = _selectedAgeRange == 'All' ? 'Ages 6-8' : _selectedAgeRange;
-    final themes = ['friendship', 'courage', 'kindness', 'adventure', 'animals'];
-    
-    for (final theme in themes) {
-      try {
-        // Generate story content with current language
-        final story = await GeminiService.generateStory(
-          ageRange: userAge,
-          language: _selectedLanguage, // Use the current language preference
-          theme: theme,
-        );
-        
-        // Assign a random background image from assets
-        final coverImage = _backgrounds[_random.nextInt(_backgrounds.length)];
-        story['coverImageUrl'] = coverImage;
-        story['pageImages'] = [];
-        _stories.add(story);
-        
-        // Save incrementally and update UI
-        await _saveStories();
-        if (mounted) setState(() {});
-        
-      } catch (e) {
-        print('Error generating story: $e');
-        // Add a fallback story with current language
-        _stories.add(_createFallbackStory(theme, userAge, _selectedLanguage));
-        if (mounted) setState(() {});
-      }
-    }
-    
-    setState(() { _isGenerating = false; });
-  }
-
-  // Helper method to create fallback story
-  Map<String, dynamic> _createFallbackStory(String theme, String userAge, String language) {
-    return {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'title': 'The Amazing ${theme.substring(0, 1).toUpperCase()}${theme.substring(1)} Adventure',
-      'theme': theme,
-      'ageRange': userAge,
-      'language': language, // Use current language
-      'content': 'Once upon a time, there was a wonderful adventure about $theme...',
-      'lesson': 'This story teaches us about $theme',
-      'createdAt': DateTime.now(),
-      'popularity': 0,
-      'coverImageUrl': _backgrounds[_random.nextInt(_backgrounds.length)],
-      'pageImages': [],
-    };
   }
 
   Future<void> _generateNewStory() async {
@@ -225,7 +153,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
       _selectedLanguage = currentLanguage;
     });
     
-    final userAge = _selectedAgeRange == 'All' ? 'Ages 6-8' : _selectedAgeRange;
+    final userAge = widget.ageRange;
     final themes = ['friendship', 'courage', 'kindness', 'adventure', 'imagination', 
                   'helping', 'sharing', 'animals', 'nature', 'dreams', 'space', 'magic'];
     final theme = (themes..shuffle()).first;
@@ -268,19 +196,30 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
     }
   }
 
-  
+  // Helper method to create fallback story
+  Map<String, dynamic> _createFallbackStory(String theme, String userAge, String language) {
+    return {
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'title': 'The Amazing ${theme.substring(0, 1).toUpperCase()}${theme.substring(1)} Adventure',
+      'theme': theme,
+      'ageRange': userAge,
+      'language': language, // Use current language
+      'content': 'Once upon a time, there was a wonderful adventure about $theme...',
+      'lesson': 'This story teaches us about $theme',
+      'createdAt': DateTime.now(),
+      'popularity': 0,
+      'coverImageUrl': _backgrounds[_random.nextInt(_backgrounds.length)],
+      'pageImages': [],
+    };
+  }
+
   Future<void> _saveStories() async {
     final user = fb_auth.FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      print('User not logged in. Cannot save stories.');
-      return;
-    }
-
+    if (user == null) return;
     final storiesRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('stories');
-
     for (final story in _stories) {
       final storyRef = storiesRef.doc(story['id']);
       await storyRef.set(story, SetOptions(merge: true));
@@ -291,8 +230,6 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
     try {
       final story = _mapToStory(storyData);
       final isFavorited = _savedStoryIds.contains(story.id);
-      
-      // Show loading state
       setState(() {
         if (isFavorited) {
           _savedStoryIds.remove(story.id);
@@ -300,11 +237,8 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
           _savedStoryIds.add(story.id);
         }
       });
-      
       final success = await ProfileService.toggleFavorite(story);
-      
       if (!success) {
-        // Revert the optimistic update if it failed
         setState(() {
           if (isFavorited) {
             _savedStoryIds.add(story.id);
@@ -312,7 +246,6 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
             _savedStoryIds.remove(story.id);
           }
         });
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error saving story. Please try again.'),
@@ -353,43 +286,6 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundYellow,
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(),
-          _buildStoryGrid(),
-        ],
-      ),
-      floatingActionButton: ScaleTransition(
-        scale: _fabScaleAnimation,
-        child: FloatingActionButton.extended(
-          onPressed: _isGenerating ? null : _generateNewStory,
-          backgroundColor: AppColors.primary,
-          icon: _isGenerating 
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : Icon(Icons.auto_stories, color: Colors.white),
-          label: Text(
-            _isGenerating ? 'Creating...' : 'New Story',
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 120,
@@ -427,7 +323,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Story Library',
+                    widget.screenTitle ?? _getGreeting(widget.ageRange),
                     style: GoogleFonts.poppins(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -443,7 +339,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
     );
   }
 
-  Widget _buildLanguageIndicator() {
+   Widget _buildLanguageIndicator() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -476,6 +372,19 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
     );
   }
 
+  String _getGreeting(String ageRange) {
+    switch (ageRange) {
+      case 'Ages 3-5':
+        return 'Hello, Little Explorer';
+      case 'Ages 6-8':
+        return 'Hi, Bright Learner';
+      case 'Ages 9-12':
+        return 'Welcome, Junior Dreamer';
+      default:
+        return 'Hello, Adventurer';
+    }
+  }
+
   Widget _buildStoryGrid() {
     if (_isLoading) {
       return SliverToBoxAdapter(
@@ -497,15 +406,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
         ),
       );
     }
-    // Filter stories by age range unless 'All'
-    List<Map<String, dynamic>> filteredStories = _selectedAgeRange == 'All'
-        ? _stories
-        : _stories.where((story) => story['ageRange'] == _selectedAgeRange).toList();
-    // Filter by language unless 'All'
-    if (_selectedLanguageFilter != 'All') {
-      filteredStories = filteredStories.where((story) => story['language'] == _selectedLanguageFilter).toList();
-    }
-    if (filteredStories.isEmpty) {
+    if (_stories.isEmpty) {
       return SliverToBoxAdapter(child: _buildEmptyState());
     }
     return SliverPadding(
@@ -524,11 +425,11 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
             columnCount: 2,
             child: ScaleAnimation(
               child: FadeInAnimation(
-                child: _buildStoryCard(filteredStories[index]),
+                child: _buildStoryCard(_stories[index]),
               ),
             ),
           ),
-          childCount: filteredStories.length,
+          childCount: _stories.length,
         ),
       ),
     );
@@ -538,19 +439,19 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
     final isSaved = _savedStoryIds.contains(story['id']);
     final isCompleted = _completedStoryIds.contains(story['id']);
     final coverImage = story['coverImageUrl'] ?? _backgrounds[_random.nextInt(_backgrounds.length)];
-    
+
     return GestureDetector(
       onTap: () => _navigateToStoryReader(_mapToStory(story)),
       child: Container(
-        margin: EdgeInsets.only(bottom: 8),
+        height: 270,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 6,
-              offset: Offset(0, 3),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: Offset(0, 5),
             ),
           ],
         ),
@@ -560,17 +461,12 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   child: Image.asset(
                     coverImage,
                     fit: BoxFit.cover,
                     width: double.infinity,
-                    height: 100,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: AppColors.primary.withOpacity(0.1),
-                      height: 100,
-                      child: Icon(Icons.book, color: AppColors.primary, size: 32),
-                    ),
+                    height: 120,
                   ),
                 ),
                 // Completion tag in the center
@@ -643,7 +539,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
                       child: Icon(
                         isSaved ? Icons.star_rounded : Icons.star_border_rounded,
                         color: isSaved ? AppColors.primary : AppColors.textMedium,
-                        size: 22,
+                        size: 24,
                       ),
                     ),
                   ),
@@ -651,11 +547,11 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
               ],
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(10, 10, 10, 4),
+              padding: EdgeInsets.fromLTRB(12, 12, 12, 4),
               child: Text(
                 story['title'] ?? 'Untitled Story',
                 style: GoogleFonts.poppins(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textDark,
                 ),
@@ -664,21 +560,34 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
               ),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: _buildStoryTag(
                 _formatThemeName(story['theme'] ?? 'General'),
                 isTheme: true,
               ),
             ),
-            SizedBox(height: 8),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildLanguageFlag(String language) {
+    final flagMap = {
+      'English': '🇬🇧',
+      'Swahili': '🇰🇪',
+      'French': '🇫🇷',
+      'German': '🇩🇪',
+      'Dutch': '🇳🇱',
+      'Spanish': '🇪🇸',
+      'Portuguese': '🇵🇹',
+    };
+    return Text(
+      flagMap[language] ?? '🏳️',
+      style: TextStyle(fontSize: 18),
+    );
+  }
 
-  // Helper method to format theme names nicely
   String _formatThemeName(String theme) {
     return theme.split('').first.toUpperCase() + theme.substring(1).toLowerCase();
   }
@@ -700,24 +609,6 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
           fontSize: 10,
           color: isTheme ? AppColors.primary : AppColors.textMedium,
           fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLanguageFlag(String language) {
-    final flagEmoji = language.toLowerCase() == 'english' ? '🇬🇧' : '🇺🇸';
-    return Container(
-      padding: EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        flagEmoji,
-        style: GoogleFonts.poppins(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -746,7 +637,7 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
             ),
             SizedBox(height: 10),
             Text(
-              'Try adjusting your filters or create a new story!',
+              'Try creating a new story',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 16,
@@ -794,20 +685,8 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
   void _navigateToStoryReader(Story story) async {
     final result = await Navigator.push(
       context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => StoryReaderScreen(story: story),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return SlideTransition(
-            position: animation.drive(
-              Tween(begin: Offset(1.0, 0.0), end: Offset.zero)
-                  .chain(CurveTween(curve: Curves.easeInOut)),
-            ),
-            child: child,
-          );
-        },
-      ),
+      MaterialPageRoute(builder: (context) => StoryReaderScreen(story: story)),
     );
-
     // If the story was completed, mark it as such and reload user data
     if (result == 'completed') {
       final storyData = _stories.firstWhere(
@@ -820,5 +699,42 @@ class _StoryLibraryScreenState extends State<StoryLibraryScreen> with TickerProv
         await _loadUserData();
       }
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundYellow,
+      body: CustomScrollView(
+        slivers: [
+          _buildSliverAppBar(),
+          _buildStoryGrid(),
+        ],
+      ),
+      floatingActionButton: ScaleTransition(
+        scale: _fabScaleAnimation,
+        child: FloatingActionButton.extended(
+          onPressed: _isGenerating ? null : _generateNewStory,
+          backgroundColor: AppColors.primary,
+          icon: _isGenerating
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Icon(Icons.auto_stories, color: Colors.white),
+          label: Text(
+            _isGenerating ? 'Creating...' : 'New Story',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

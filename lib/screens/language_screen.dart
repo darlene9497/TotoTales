@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:toto_tales/services/language_service.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
 import '../widgets/animated_button.dart';
@@ -16,12 +18,12 @@ class LanguageScreen extends StatefulWidget {
   State<LanguageScreen> createState() => _LanguageScreenState();
 }
 
-class _LanguageScreenState extends State<LanguageScreen>
-    with TickerProviderStateMixin {
+class _LanguageScreenState extends State<LanguageScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
   String? _selectedLanguage;
   final bool _isPremium = false; // This should come from user model
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _LanguageScreenState extends State<LanguageScreen>
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
     _fadeController.forward();
+    _loadSavedLanguage();
   }
 
   @override
@@ -43,15 +46,119 @@ class _LanguageScreenState extends State<LanguageScreen>
     super.dispose();
   }
 
-  void _selectLanguage(String language) {
+  // Load saved language preference
+  Future<void> _loadSavedLanguage() async {
+    try {
+      final savedLanguage = await LanguageService.getCurrentLanguage();
+      if (_selectedLanguage == null) {
+        setState(() {
+          _selectedLanguage = savedLanguage;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading saved language: $e');
+    }
+  }
+
+  void _selectLanguage(String language) async {
+    if (_isLoading) return;
+    
     setState(() {
       _selectedLanguage = language;
+      _isLoading = true;
     });
+    
     HapticFeedback.selectionClick();
     
-    if (widget.onLanguageSelected != null) {
-      widget.onLanguageSelected!(language);
+    // Save the preference using the new service
+    final success = await LanguageService.saveLanguagePreference(language);
+    
+    if (success) {
+      // Show success message with enhanced styling
+      _showLanguageChangedSnackBar(language);
+      
+      // Call the callback if provided
+      if (widget.onLanguageSelected != null) {
+        widget.onLanguageSelected!(language);
+      }
+    } else {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error, color: Colors.white),
+              SizedBox(width: 12),
+              Text(
+                'Failed to save language preference',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16),
+        ),
+      );
     }
+    
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  void _showLanguageChangedSnackBar(String language) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha((0.2 * 255).toInt()),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Language Updated Successfully',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'All new stories will now be generated in $language',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.white.withAlpha((0.9 * 255).toInt()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: _getLanguageColor(language),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   bool _isLanguageFree(String language) {
@@ -66,12 +173,19 @@ class _LanguageScreenState extends State<LanguageScreen>
         return AppColors.swahiliGreen;
       case 'French':
         return AppColors.frenchPurple;
+      case 'German':
+        return const Color(0xFF1E3A8A);
+      case 'Spanish':
+        return const Color(0xFFDC2626);
+      case 'Dutch':
+        return const Color(0xFFEA580C);
       default:
         return AppColors.premiumGold;
     }
   }
 
   void _showPremiumDialog() {
+    HapticFeedback.lightImpact();
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -81,17 +195,27 @@ class _LanguageScreenState extends State<LanguageScreen>
           ),
           title: Row(
             children: [
-              Icon(
-                Icons.stars_rounded,
-                color: AppColors.premiumGold,
-                size: 28,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.premiumGold.withAlpha((0.1 * 255).toInt()),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.workspace_premium_rounded,
+                  color: AppColors.premiumGold,
+                  size: 24,
+                ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Premium Feature',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Premium Language',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ],
@@ -101,29 +225,40 @@ class _LanguageScreenState extends State<LanguageScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Unlock all languages and premium features:',
+                'Unlock this language and get access to:',
                 style: GoogleFonts.poppins(
                   color: AppColors.textDark,
                   fontWeight: FontWeight.w600,
+                  fontSize: 16,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               ...AppConstants.premiumFeatures.map((feature) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: AppColors.success,
-                      size: 20,
+                    Container(
+                      margin: const EdgeInsets.only(top: 2),
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         feature,
                         style: GoogleFonts.poppins(
                           color: AppColors.textMedium,
                           fontSize: 14,
+                          height: 1.4,
                         ),
                       ),
                     ),
@@ -139,13 +274,13 @@ class _LanguageScreenState extends State<LanguageScreen>
                 'Maybe Later',
                 style: GoogleFonts.poppins(
                   color: AppColors.textMedium,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Navigate to premium subscription page
                 _handlePremiumUpgrade();
               },
               style: ElevatedButton.styleFrom(
@@ -154,12 +289,20 @@ class _LanguageScreenState extends State<LanguageScreen>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: Text(
-                'Upgrade Now',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.upgrade, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Upgrade Now',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -169,23 +312,37 @@ class _LanguageScreenState extends State<LanguageScreen>
   }
 
   void _handlePremiumUpgrade() {
-    // TODO: Implement premium upgrade logic
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Premium upgrade coming soon!',
-          style: GoogleFonts.poppins(),
+        content: Row(
+          children: [
+            Icon(
+              Icons.workspace_premium_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Premium upgrade coming soon!',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
         backgroundColor: AppColors.premiumGold,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
 
   void _continueWithLanguage() {
+    if (_selectedLanguage == null) return;
+    
     HapticFeedback.mediumImpact();
     Navigator.of(context).pop(_selectedLanguage);
   }
@@ -220,10 +377,17 @@ class _LanguageScreenState extends State<LanguageScreen>
               padding: const EdgeInsets.all(AppConstants.defaultPadding),
               child: Column(
                 children: [
-                  const Icon(
-                    Icons.language_rounded,
-                    size: 64,
-                    color: AppColors.primary,
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withAlpha((0.1 * 255).toInt()),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.translate_rounded,
+                      size: 48,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -237,7 +401,7 @@ class _LanguageScreenState extends State<LanguageScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Choose from our collection of magical stories',
+                    'Stories will be generated in your selected language',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: AppColors.textMedium,
@@ -280,6 +444,7 @@ class _LanguageScreenState extends State<LanguageScreen>
                             isFree: isFree,
                             canSelect: canSelect,
                             color: _getLanguageColor(language),
+                            isLoading: _isLoading && isSelected,
                             onTap: () => canSelect ? _selectLanguage(language) : _showPremiumDialog(),
                           ),
                         ),
@@ -294,15 +459,15 @@ class _LanguageScreenState extends State<LanguageScreen>
             if (!_isPremium)
               Container(
                 margin: const EdgeInsets.all(AppConstants.defaultPadding),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.premiumGold.withAlpha((0.1 * 255).toInt()),
+                      AppColors.premiumGold.withAlpha((0.15 * 255).toInt()),
                       AppColors.premiumGold.withAlpha((0.05 * 255).toInt()),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: AppColors.premiumGold.withAlpha((0.3 * 255).toInt()),
                     width: 2,
@@ -310,12 +475,19 @@ class _LanguageScreenState extends State<LanguageScreen>
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.stars_rounded,
-                      color: AppColors.premiumGold,
-                      size: 32,
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.premiumGold,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.auto_stories_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,8 +500,9 @@ class _LanguageScreenState extends State<LanguageScreen>
                               color: AppColors.textDark,
                             ),
                           ),
+                          const SizedBox(height: 4),
                           Text(
-                            'Get access to German, Dutch, Spanish & more!',
+                            'Generate stories in German, Dutch, Spanish & more!',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: AppColors.textMedium,
@@ -374,6 +547,7 @@ class LanguageCard extends StatefulWidget {
   final bool isSelected;
   final bool isFree;
   final bool canSelect;
+  final bool isLoading;
   final Color color;
   final VoidCallback onTap;
 
@@ -386,6 +560,7 @@ class LanguageCard extends StatefulWidget {
     required this.canSelect,
     required this.color,
     required this.onTap,
+    this.isLoading = false,
   });
 
   @override
@@ -416,12 +591,16 @@ class _LanguageCardState extends State<LanguageCard>
   }
 
   void _handleTapDown(TapDownDetails details) {
-    _scaleController.forward();
+    if (!widget.isLoading) {
+      _scaleController.forward();
+    }
   }
 
   void _handleTapUp(TapUpDetails details) {
-    _scaleController.reverse();
-    widget.onTap();
+    if (!widget.isLoading) {
+      _scaleController.reverse();
+      widget.onTap();
+    }
   }
 
   void _handleTapCancel() {
@@ -449,7 +628,9 @@ class _LanguageCardState extends State<LanguageCard>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.isSelected ? widget.color.withAlpha((0.3 * 255).toInt()) : AppColors.shadowLight,
+                    color: widget.isSelected 
+                        ? widget.color.withAlpha((0.3 * 255).toInt()) 
+                        : AppColors.shadowLight,
                     blurRadius: widget.isSelected ? 12 : 8,
                     offset: const Offset(0, 4),
                   ),
@@ -478,11 +659,11 @@ class _LanguageCardState extends State<LanguageCard>
                         ),
                         if (widget.isFree)
                           Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            margin: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: AppColors.success,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               'FREE',
@@ -497,40 +678,75 @@ class _LanguageCardState extends State<LanguageCard>
                     ),
                   ),
                   
+                  // Loading indicator
+                  if (widget.isLoading)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha((0.1 * 255).toInt()),
+                          borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
+                        ),
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(widget.color),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  
                   // Premium lock icon
                   if (!widget.isFree && !widget.canSelect)
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: 12,
+                      right: 12,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: AppColors.premiumGold,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.premiumGold.withAlpha((0.3 * 255).toInt()),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: const Icon(
-                          Icons.lock_rounded,
+                          Icons.workspace_premium_rounded,
                           color: Colors.white,
-                          size: 16,
+                          size: 14,
                         ),
                       ),
                     ),
                   
                   // Selection indicator
-                  if (widget.isSelected)
+                  if (widget.isSelected && !widget.isLoading)
                     Positioned(
-                      top: 8,
-                      left: 8,
+                      top: 12,
+                      left: 12,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: widget.color,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: widget.color.withAlpha((0.3 * 255).toInt()),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: const Icon(
-                          Icons.check,
+                          Icons.check_rounded,
                           color: Colors.white,
-                          size: 16,
+                          size: 14,
                         ),
                       ),
                     ),

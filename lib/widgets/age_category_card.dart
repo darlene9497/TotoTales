@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 
 class AgeCategoryCard extends StatelessWidget {
-  final String emoji;
+  final String imagePath;
   final String title;
   final String ageRange;
   final String description;
@@ -15,7 +15,7 @@ class AgeCategoryCard extends StatelessWidget {
 
   const AgeCategoryCard({
     Key? key,
-    required this.emoji,
+    required this.imagePath,
     required this.title,
     required this.ageRange,
     required this.description,
@@ -70,12 +70,10 @@ class AgeCategoryCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      emoji,
-                      style: TextStyle(
-                        fontSize: 32,
-                        color: isEnabled ? Colors.white : Colors.white.withOpacity(0.5),
-                      ),
+                    Image.asset(
+                      imagePath,
+                      height: 60,
+                      width: 60,
                     ),
                     const SizedBox(width: 12),
                     Expanded(

@@ -10,6 +10,8 @@ import 'package:toto_tales/screens/story_library_screen.dart';
 import 'providers/age_provider.dart';
 import 'services/firebase_service.dart';
 import 'firebase_options.dart';
+import 'package:flutter/foundation.dart';
+import 'package:device_preview/device_preview.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,13 +20,16 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AgeProvider()),
-      ],
-      child: TotoTalesApp(),
+    DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AgeProvider()),
+        ],
+        child: const TotoTalesApp(),
+      ),
     ),
   );
 }
@@ -39,17 +44,90 @@ class TotoTalesApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: AuthWrapper(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-// Auth wrapper to handle authentication state
-class AuthWrapper extends StatelessWidget {
+// SplashScreen with 5-second delay
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    Future.delayed(const Duration(seconds: 5), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => AuthWrapperDelayed()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/backgrounds/splash.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Overlay
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.4),
+            ),
+          ),
+          // Foreground content
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.auto_stories,
+                  size: 80,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 20),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Loading TotoTales...',
+                  style: TextStyle(
+                    fontFamily: 'ComicSans',
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Handles auth state AFTER splash delay
+class AuthWrapperDelayed extends StatelessWidget {
   final AuthService _authService = AuthService();
 
-  AuthWrapper({super.key});
+  AuthWrapperDelayed({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -57,68 +135,33 @@ class AuthWrapper extends StatelessWidget {
       stream: _authService.authStateChanges,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return SplashScreen();
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         } else if (snapshot.hasData) {
-          // User is logged in, initialize age provider
           return Consumer<AgeProvider>(
             builder: (context, ageProvider, child) {
               if (ageProvider.isLoading) {
-                // Initialize age range on first load
                 ageProvider.initializeAgeRange();
-                return SplashScreen();
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
               }
-              
+
               return HomeScreen(
                 registeredAgeRange: ageProvider.childAgeRange,
               );
             },
           );
         } else {
-          // User is not logged in, show login screen
-          return LoginScreen();
+          return const LoginScreen();
         }
       },
     );
   }
 }
 
-// Updated splash screen
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue[50],
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Your app logo here
-            Icon(
-              Icons.book,
-              size: 80,
-              color: Colors.blue,
-            ),
-            SizedBox(height: 20),
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text(
-              'Loading TotoTales...',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.blue[800],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Example of how to use the age provider in other screens
+// Navigation helper
 class NavigationHelper {
   static void navigateToHome(BuildContext context) {
     Navigator.pushReplacement(
@@ -134,7 +177,7 @@ class NavigationHelper {
       ),
     );
   }
-  
+
   static void navigateToStoryLibrary(BuildContext context) {
     final ageProvider = Provider.of<AgeProvider>(context, listen: false);
     Navigator.push(
@@ -146,7 +189,7 @@ class NavigationHelper {
       ),
     );
   }
-  
+
   static void navigateToAffirmations(BuildContext context) {
     final ageProvider = Provider.of<AgeProvider>(context, listen: false);
     Navigator.push(

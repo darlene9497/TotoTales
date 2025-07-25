@@ -11,9 +11,10 @@ import 'story_library_screen.dart';
 import 'affirmation_screen.dart';
 import 'language_screen.dart';
 import 'profile_screen.dart';
+import 'age_range_story_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final String? registeredAgeRange; // Add this to receive the child's registered age
+  final String? registeredAgeRange;
   
   const HomeScreen({super.key, this.registeredAgeRange});
 
@@ -82,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Helper method to check if an age category is enabled
   bool _isAgeRangeEnabled(String ageRange) {
-    return ageRange == childAgeRange;
+    return childAgeRange == 'Explore All' || ageRange == childAgeRange;
   }
 
   // Show dialog when locked card is tapped
@@ -194,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   
                   // Centered cards with equal spacing
                   Expanded(
-                    child: Center(
+                    child: SingleChildScrollView(
                       child: AnimationLimiter(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -209,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             children: [
                               AgeCategoryCard(
-                                emoji: '🌟',
+                                imagePath: 'assets/images/backgrounds/cloud1.png',
                                 title: AppConstants.littleExplorers,
                                 ageRange: AppConstants.littleExplorersAge,
                                 description: AppConstants.littleExplorersDescription,
@@ -221,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                               SizedBox(height: 20),
                               AgeCategoryCard(
-                                emoji: '📚',
+                                imagePath: 'assets/images/backgrounds/butterfly.png',
                                 title: AppConstants.brightLearners,
                                 ageRange: AppConstants.brightLearnersAge,
                                 description: AppConstants.brightLearnersDescription,
@@ -233,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                               SizedBox(height: 20),
                               AgeCategoryCard(
-                                emoji: '🎭',
+                                imagePath: 'assets/images/backgrounds/sun.png',
                                 title: AppConstants.juniorDreamers,
                                 ageRange: AppConstants.juniorDreamersAge,
                                 description: AppConstants.juniorDreamersDescription,
@@ -242,6 +243,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 onTap: _isAgeRangeEnabled('9-12')
                                     ? () => _navigateToStoryLibrary('9-12')
                                     : _showLockedDialog,
+                              ),
+                              SizedBox(height: 20),
+                              AgeCategoryCard(
+                                imagePath: 'assets/images/backgrounds/bee.png',
+                                title: 'Explore All',
+                                ageRange: 'All Ages',
+                                description: 'See and generate stories from all age categories!',
+                                primaryColor: AppColors.primary,
+                                secondaryColor: AppColors.primary.withOpacity(0.7),
+                                onTap: () => _navigateToStoryLibrary('All'),
                               ),
                             ],
                           ),
@@ -342,13 +353,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       case '9-12':
         displayAgeRange = 'Ages 9-12';
         break;
+      case 'All':
+        displayAgeRange = 'All';
+        break;
       default:
         displayAgeRange = 'Ages 6-8';
     }
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => StoryLibraryScreen(selectedAgeRange: displayAgeRange),
+        builder: (context) => AgeRangeStoryScreen(ageRange: displayAgeRange),
       ),
     );
   }

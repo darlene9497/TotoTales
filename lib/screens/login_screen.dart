@@ -308,7 +308,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       ),
                                     )
                                   : Text(
-                                      'Start Reading! 📚',
+                                      'Start Reading',
                                       style: GoogleFonts.poppins(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w600,
@@ -318,54 +318,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                           
                           const SizedBox(height: 20),
-                          
-                          // OR Divider
-                          Row(
-                            children: [
-                              Expanded(child: Divider(color: Colors.grey.shade300)),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  'OR',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.grey.shade600,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              Expanded(child: Divider(color: Colors.grey.shade300)),
-                            ],
-                          ),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Google Sign In Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 55,
-                            child: OutlinedButton.icon(
-                              onPressed: _isLoading ? null : _signInWithGoogle,
-                              icon: Image.asset(
-                                'assets/icons/google_logo.png',
-                                height: 24,
-                                width: 24,
-                              ),
-                              label: Text(
-                                'Continue with Google',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: Colors.grey.shade300),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),

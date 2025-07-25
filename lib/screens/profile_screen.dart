@@ -9,11 +9,7 @@ import '../widgets/animated_button.dart';
 import '../models/user.dart';
 import '../screens/language_screen.dart';
 import '../screens/login_screen.dart';
-import '../services/story_save_service.dart';
 import '../models/story.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '../services/profile_service.dart';
 import '../screens/story_reader_screen.dart';
 
@@ -72,7 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       case '9-12':
         return AppConstants.juniorDreamers;
       default:
-        return 'Unknown';
+        return 'All Ages';
     }
   }
 
@@ -112,6 +108,8 @@ class _ProfileScreenState extends State<ProfileScreen>
               _buildAgeRangeOption('6-8', AppConstants.brightLearners, AppColors.brightLearners),
               const SizedBox(height: 8),
               _buildAgeRangeOption('9-12', AppConstants.juniorDreamers, AppColors.juniorDreamers),
+              const SizedBox(height: 8),
+              _buildAgeRangeOption('Explore All', 'Explore All', AppColors.primary),
             ],
           ),
           actions: [
@@ -184,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                   Text(
-                    'Ages $ageRange',
+                    ageRange == 'Explore All' ? 'All Ages' : 'Ages $ageRange',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: AppColors.textMedium,
@@ -984,17 +982,26 @@ class _ProfileScreenState extends State<ProfileScreen>
                       children: [
                         Expanded(
                           flex: 3,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                            child: Image.asset(
-                              story.coverImageUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                color: AppColors.primary.withOpacity(0.1),
-                                child: Icon(Icons.book, color: AppColors.primary, size: 32),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                child: Image.asset(
+                                  story.coverImageUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: AppColors.primary.withOpacity(0.1),
+                                    child: Icon(Icons.book, color: AppColors.primary, size: 32),
+                                  ),
+                                ),
                               ),
-                            ),
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: _buildLanguageFlag(story.language),
+                              ),
+                            ],
                           ),
                         ),
                         Expanded(
@@ -1036,6 +1043,32 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         );
       },
+    );
+  }
+
+  Widget _buildLanguageFlag(String language) {
+    final flagMap = {
+      'English': '🇬🇧',
+      'Swahili': '🇰🇪',
+      'French': '🇫🇷',
+      'German': '🇩🇪',
+      'Dutch': '🇳��',
+      'Spanish': '🇪🇸',
+      'Portuguese': '🇵🇹',
+    };
+    return Container(
+      padding: EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        flagMap[language] ?? '🏳️',
+        style: GoogleFonts.poppins(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 

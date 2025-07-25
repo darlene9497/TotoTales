@@ -86,7 +86,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     } on FirebaseAuthException catch (e) {
       _showErrorDialog(_authService.getErrorMessage(e.code));
     } catch (e) {
-      _showErrorDialog('Something went wrong. Please try again!');
+      _showErrorDialog('Something went wrong. Please try again');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -463,34 +463,6 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                                 ),
                                 
                                 const SizedBox(height: 20),
-                                
-                                // Google Sign In Button
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 55,
-                                  child: OutlinedButton.icon(
-                                    onPressed: _isLoading ? null : _signInWithGoogle,
-                                    icon: Image.asset(
-                                      'assets/icons/google_logo.png',
-                                      height: 24,
-                                      width: 24,
-                                    ),
-                                    label: Text(
-                                      'Continue with Google',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      side: BorderSide(color: Colors.grey.shade300),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),

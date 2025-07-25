@@ -26,6 +26,7 @@ dependencies:
   flutter_tts: ^3.8.4
   uuid: ^4.1.0
   cached_network_image: ^3.3.0 
+  google_generative_ai: ^0.4.3
 
   # Firebase & Google sign-in (Web-ready)
   firebase_core: ^2.30.0
