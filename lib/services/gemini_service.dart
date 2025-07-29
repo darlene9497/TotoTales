@@ -742,29 +742,37 @@ class GeminiService {
       String lesson = '';
       List<String> lines = generatedText.split('\n');
       List<String> storyLines = [];
-      
+
       for (String line in lines) {
         String cleanLine = line.trim();
+
+        // Skip unwanted prefixes
+        final lower = cleanLine.toLowerCase();
+        if (lower.startsWith('page') ||
+            lower.startsWith('story:') ||
+            lower.startsWith('titre:') ||
+            lower.startsWith('jina la story') ||
+            lower.startsWith('title:') ||
+            lower == 'story' ||
+            lower == 'lesson:' ||
+            lower == 'titre' ||
+            lower == 'jina la story' ||
+            lower.isEmpty) {
+          continue;
+        }
+
         if (cleanLine.startsWith('TITLE:') || cleanLine.startsWith('**TITLE:**')) {
-          // Extract title, remove asterisks, 'TITLE:', and quotes
           title = cleanLine.replaceAll(RegExp(r'\*|TITLE:|:'), '').trim();
           title = title.replaceAll(RegExp(r'^["\t]|["\t]$'), '').trim();
         } else if (cleanLine.startsWith('LESSON:')) {
           lesson = cleanLine.replaceAll(RegExp(r'\*|LESSON:|:'), '').trim();
-        } else if (cleanLine.isNotEmpty &&
-                   !cleanLine.startsWith('PAGE') &&
-                   !cleanLine.toUpperCase().contains('TITLE') &&
-                   !cleanLine.toUpperCase().contains('LESSON')) {
+        } else {
           // Remove asterisks, markdown, and numbering
           cleanLine = cleanLine.replaceAll(RegExp(r'\*'), '').replaceAll(RegExp(r'^\d+\.\s*'), '').trim();
-          // Filter out 'STORY:' or 'STORY' lines
-          if (cleanLine.toLowerCase() != 'story:' && cleanLine.toLowerCase() != 'story') {
-            storyLines.add(cleanLine);
-          }
+          storyLines.add(cleanLine);
         }
       }
       if (title.isEmpty) {
-        // Fallback: use first non-empty line as title
         title = storyLines.isNotEmpty ? storyLines.removeAt(0) : 'Untitled Story';
       }
       String story = storyLines.join('\n\n');
@@ -996,7 +1004,7 @@ class GeminiService {
           'friendship': 'Sofia se mudou para uma nova cidade e sentia falta de seus velhos amigos. Em sua nova escola, ela se juntou ao clube de arte e conheceu crianças que amavam desenhar como ela. Eles trabalharam juntos em um mural e Sofia percebeu que poderia fazer novos amigos.',
           'courage': 'Marcus queria participar do show de talentos da escola mas tinha medo de se apresentar. Ele praticou seus truques de mágica todos os dias. Na noite do show, ele se lembrou de toda sua prática e se apresentou lindamente, ganhando uma ovação de pé.',
           'kindness': 'Quando Lily viu colegas intimidando um novo aluno, ela o defendeu. Ela o convidou para sentar com seu grupo no almoço e o ajudou a fazer amigos. Sua bondade criou um efeito cascata de aceitação na escola.',
-          'adventure': 'Zoe encontrou uma chave misteriosa enquanto limpava o sótão de sua avó. Ela abriu uma sala secreta cheia de diários das aventuras de sua avó ao redor do mundo. Inspirada, Zoe começou a planejar suas próprias aventuras.',
+          'adventure': 'Zoe encontrou uma chave misteriosa enquanto limpava o sótão de sua avó. Abriu uma sala secreta cheia de diários das aventuras de sua avó ao redor do mundo. Inspirada, Zoe começou a planejar suas próprias aventuras.',
         },
       },
     };
