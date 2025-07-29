@@ -4,26 +4,26 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:toto_tales/services/language_service.dart';
+import 'package:toto_tales/utils/env.dart';
 import '../models/affirmation.dart';
 import 'dart:math';
 
 class GeminiService {
   static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
-  static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+  static String get _apiKey => Env.geminiApiKey;
 
   // Groq API
   static const String _groqBaseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-  static String get _groqApiKey => dotenv.env['GROQ_API_KEY'] ?? '';
+  static String get _groqApiKey => Env.groqApiKey;
   
   // Hugging Face API
   static const String _huggingFaceUrl = 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium';
-  static String get _huggingFaceKey => dotenv.env['HUGGING_FACE_API_KEY'] ?? '';
+  static String get _huggingFaceKey => Env.huggingFaceApiKey;
   
   // Together AI
   static const String _togetherBaseUrl = 'https://api.together.xyz/v1/chat/completions';
-  static String get _togetherApiKey => dotenv.env['TOGETHER_AI_API_KEY'] ?? '';
+  static String get _togetherApiKey => Env.togetherApiKey;
   
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -788,112 +788,6 @@ class GeminiService {
       print('Error parsing story: $e');
       return _getFallbackStory(ageRange, language, theme);
     }
-  }
-
-  static String _getDefaultTitle(String theme, String language) {
-    Map<String, Map<String, String>> defaultTitles = {
-      'English': {
-        'friendship': 'A Story About Friendship',
-        'courage': 'A Brave Adventure',
-        'kindness': 'The Kind Heart',
-        'adventure': 'A Wonderful Adventure',
-        'animals': 'Animal Friends',
-        'imagination': 'A Magical Journey',
-        'helping': 'Helping Others',
-        'sharing': 'The Joy of Sharing',
-        'nature': 'Nature\'s Beauty',
-        'dreams': 'Follow Your Dreams',
-        'space': 'Space Adventure',
-        'magic': 'A Magical Tale',
-      },
-      'Swahili': {
-        'friendship': 'Hadithi ya Urafiki',
-        'courage': 'Safari ya Ujasiri',
-        'kindness': 'Moyo wa Huruma',
-        'adventure': 'Safari ya Ajabu',
-        'animals': 'Marafiki wa Wanyamapori',
-        'imagination': 'Safari ya Kichawi',
-        'helping': 'Kusaidia Wengine',
-        'sharing': 'Furaha ya Kushiriki',
-        'nature': 'Uzuri wa Asili',
-        'dreams': 'Fuata Ndoto Zako',
-        'space': 'Safari ya Anga',
-        'magic': 'Hadithi ya Kichawi',
-      },
-      'French': {
-        'friendship': 'Une Histoire d\'Amitié',
-        'courage': 'Une Aventure Courageuse',
-        'kindness': 'Le Cœur Généreux',
-        'adventure': 'Une Aventure Merveilleuse',
-        'animals': 'Amis Animaux',
-        'imagination': 'Un Voyage Magique',
-        'helping': 'Aider les Autres',
-        'sharing': 'La Joie de Partager',
-        'nature': 'La Beauté de la Nature',
-        'dreams': 'Suivez Vos Rêves',
-        'space': 'Aventure Spatiale',
-        'magic': 'Un Conte Magique',
-      },
-      'German': {
-        'friendship': 'Eine Geschichte über Freundschaft',
-        'courage': 'Ein Mutiges Abenteuer',
-        'kindness': 'Das Gütige Herz',
-        'adventure': 'Ein Wunderbares Abenteuer',
-        'animals': 'Tierfreunde',
-        'imagination': 'Eine Magische Reise',
-        'helping': 'Anderen Helfen',
-        'sharing': 'Die Freude am Teilen',
-        'nature': 'Die Schönheit der Natur',
-        'dreams': 'Folge Deinen Träumen',
-        'space': 'Weltraum-Abenteuer',
-        'magic': 'Ein Magisches Märchen',
-      },
-      'Spanish': {
-        'friendship': 'Una Historia de Amistad',
-        'courage': 'Una Aventura Valiente',
-        'kindness': 'El Corazón Bondadoso',
-        'adventure': 'Una Aventura Maravillosa',
-        'animals': 'Amigos Animales',
-        'imagination': 'Un Viaje Mágico',
-        'helping': 'Ayudar a Otros',
-        'sharing': 'La Alegría de Compartir',
-        'nature': 'La Belleza de la Naturaleza',
-        'dreams': 'Sigue Tus Sueños',
-        'space': 'Aventura Espacial',
-        'magic': 'Un Cuento Mágico',
-      },
-      'Dutch': {
-        'friendship': 'Een Verhaal over Vriendschap',
-        'courage': 'Een Moedig Avontuur',
-        'kindness': 'Het Vriendelijke Hart',
-        'adventure': 'Een Prachtig Avontuur',
-        'animals': 'Dierenvrienden',
-        'imagination': 'Een Magische Reis',
-        'helping': 'Anderen Helpen',
-        'sharing': 'De Vreugde van Delen',
-        'nature': 'De Schoonheid van de Natuur',
-        'dreams': 'Volg Je Dromen',
-        'space': 'Ruimte Avontuur',
-        'magic': 'Een Magisch Verhaal',
-      },
-      'Portuguese': {
-        'friendship': 'Uma História de Amizade',
-        'courage': 'Uma Aventura Corajosa',
-        'kindness': 'O Coração Bondoso',
-        'adventure': 'Uma Aventura Maravilhosa',
-        'animals': 'Amigos Animais',
-        'imagination': 'Uma Jornada Mágica',
-        'helping': 'Ajudar os Outros',
-        'sharing': 'A Alegria de Compartilhar',
-        'nature': 'A Beleza da Natureza',
-        'dreams': 'Siga Seus Sonhos',
-        'space': 'Aventura Espacial',
-        'magic': 'Um Conto Mágico',
-      },
-    };
-
-    Map<String, String> languageTitles = defaultTitles[language] ?? defaultTitles['English']!;
-    return languageTitles[theme.toLowerCase()] ?? languageTitles['adventure']!;
   }
 
   static Future<void> _saveStoryToFirebase(Map<String, dynamic> storyData) async {

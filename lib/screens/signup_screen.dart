@@ -14,21 +14,21 @@ class SignupScreen extends StatefulWidget {
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMixin {
+class _SignupScreenState extends State<SignupScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _parentNameController = TextEditingController();
   final _childNameController = TextEditingController();
   final AuthService _authService = AuthService();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   String _selectedAgeRange = 'Ages 6-8';
   late AnimationController _animationController;
   late Animation<double> _slideAnimation;
   late AnimationController _floatController;
-  late Animation<double> _floatAnimation;
 
   final List<String> _ageRanges = ['Ages 3-5', 'Ages 6-8', 'Ages 9-12'];
 
@@ -42,15 +42,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     _slideAnimation = Tween<double>(begin: 50, end: 0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
     );
-    
-    _floatController = AnimationController(
-      duration: const Duration(seconds: 4),
-      vsync: this,
-    )..repeat(reverse: true);
-    _floatAnimation = Tween<double>(begin: -8, end: 8).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-    
+
     _animationController.forward();
   }
 
@@ -69,7 +61,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    
+
     try {
       await _authService.signUpWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -78,7 +70,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
         childName: _childNameController.text.trim(),
         childAge: _selectedAgeRange,
       );
-      
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -94,7 +86,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
-    
+
     try {
       await _authService.signInWithGoogle();
       Navigator.pushReplacement(
@@ -113,7 +105,11 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 40),
+        title: const Icon(
+          Icons.warning_amber_rounded,
+          color: Colors.orange,
+          size: 40,
+        ),
         content: Text(
           message,
           style: GoogleFonts.poppins(fontSize: 16),
@@ -122,7 +118,10 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK', style: GoogleFonts.poppins(color: AppColors.primary)),
+            child: Text(
+              'OK',
+              style: GoogleFonts.poppins(color: AppColors.primary),
+            ),
           ),
         ],
       ),
@@ -132,260 +131,237 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF66BB6A),
-              Color(0xFF4CAF50),
-              Color(0xFF388E3C),
-            ],
+      body: Stack(
+        children: [
+          // Cartoon background image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/backgrounds/signup.jpg',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: AnimatedBuilder(
-                animation: _slideAnimation,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, _slideAnimation.value),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        
-                        // Animated Header
-                        AnimatedBuilder(
-                          animation: _floatAnimation,
-                          builder: (context, child) {
-                            return Transform.translate(
-                              offset: Offset(0, _floatAnimation.value),
-                              child: Column(
-                                children: [
-                                  Container(
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(25),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 10),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.family_restroom_rounded,
-                                      size: 50,
-                                      color: Color(0xFF66BB6A),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    'Join TotoTales!',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Create magical reading moments',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      color: Colors.white.withOpacity(0.9),
-                                    ),
-                                  ),
-                                ],
+          Positioned.fill(
+            child: Container(color: Colors.black.withOpacity(0.35)),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: AnimatedBuilder(
+                  animation: _slideAnimation,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0, _slideAnimation.value),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/icons/tototales_logo.png',
+                                height: 150,
                               ),
-                            );
-                          },
-                        ),
-                        
-                        const SizedBox(height: 40),
-                        
-                        // Signup Form
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 30,
-                                offset: const Offset(0, 15),
+                              const SizedBox(height: 18),
+                              Text(
+                                'Join TotoTales',
+                                style: GoogleFonts.comicNeue(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color.fromARGB(
+                                    255,
+                                    255,
+                                    255,
+                                    255,
+                                  ),
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 8,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ),
+                                      offset: Offset(2, 2),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Parent Name Field
-                                Text(
-                                  'Parent Information',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey.shade700,
-                                  ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create magical reading moments',
+                            style: GoogleFonts.comicNeue(
+                              fontSize: 18,
+                              color: const Color.fromARGB(255, 255, 255, 255),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Signup Form
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(25),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 30,
+                                  offset: const Offset(0, 15),
                                 ),
-                                const SizedBox(height: 16),
-                                
-                                TextFormField(
-                                  controller: _parentNameController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Your Name',
-                                    prefixIcon: const Icon(Icons.person_rounded, color: AppColors.primary),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: BorderSide.none,
+                              ],
+                            ),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Parent Name Field
+                                  Text(
+                                    'Parent Information',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade700,
                                     ),
-                                    filled: true,
-                                    fillColor: Colors.grey.shade50,
-                                    labelStyle: GoogleFonts.poppins(color: Colors.grey.shade700),
                                   ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter your name';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                
-                                const SizedBox(height: 20),
-                                
-                                // Email Field
-                                TextFormField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: InputDecoration(
-                                    labelText: 'Email Address',
-                                    prefixIcon: const Icon(Icons.email_rounded, color: AppColors.primary),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey.shade50,
-                                    labelStyle: GoogleFonts.poppins(color: Colors.grey.shade700),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter your email';
-                                    }
-                                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}').hasMatch(value)) {
-                                      return 'Please enter a valid email';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                
-                                const SizedBox(height: 20),
-                                
-                                // Password Field
-                                TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: _obscurePassword,
-                                  decoration: InputDecoration(
-                                    labelText: 'Password',
-                                    prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.primary),
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                        color: AppColors.primary,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _obscurePassword = !_obscurePassword;
-                                        });
-                                      },
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey.shade50,
-                                    labelStyle: GoogleFonts.poppins(color: Colors.grey.shade700),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter a password';
-                                    }
-                                    if (value.length < 6) {
-                                      return 'Password must be at least 6 characters';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                
-                                const SizedBox(height: 30),
-                                
-                                // Child Information Section
-                                Text(
-                                  'Child Information',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                
-                                // Child Name Field
-                                TextFormField(
-                                  controller: _childNameController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Child\'s Name',
-                                    prefixIcon: const Icon(Icons.child_care_rounded, color: AppColors.primary),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey.shade50,
-                                    labelStyle: GoogleFonts.poppins(color: Colors.grey.shade700),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter your child\'s name';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                
-                                const SizedBox(height: 20),
-                                
-                                // Age Range Dropdown
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                  child: DropdownButtonFormField<String>(
-                                    value: _selectedAgeRange,
+                                  const SizedBox(height: 16),
+
+                                  TextFormField(
+                                    controller: _parentNameController,
                                     decoration: InputDecoration(
-                                      labelText: 'Child\'s Age Range',
-                                      prefixIcon: const Icon(Icons.cake_rounded, color: AppColors.primary),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(15),
-                                        borderSide: BorderSide.none,
-                                      ),
+                                      labelText: 'Your Name',
+                                      labelStyle: GoogleFonts.comicNeue(),
                                       filled: true,
-                                      fillColor: Colors.grey.shade50,
-                                      labelStyle: GoogleFonts.poppins(color: Colors.grey.shade700),
+                                      fillColor: Colors.white.withOpacity(0.8),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
                                     ),
-                                    items: _ageRanges.map((String age) {
-                                      return DropdownMenuItem<String>(
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter your name';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  // Email Field
+                                  TextFormField(
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    decoration: InputDecoration(
+                                      labelText: 'Email',
+                                      labelStyle: GoogleFonts.comicNeue(),
+                                      filled: true,
+                                      fillColor: Colors.white.withOpacity(0.8),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter your email';
+                                      }
+                                      if (!RegExp(
+                                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}',
+                                      ).hasMatch(value)) {
+                                        return 'Please enter a valid email';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  // Password Field
+                                  TextFormField(
+                                    controller: _passwordController,
+                                    obscureText: _obscurePassword,
+                                    decoration: InputDecoration(
+                                      labelText: 'Password',
+                                      labelStyle: GoogleFonts.comicNeue(),
+                                      filled: true,
+                                      fillColor: Colors.white.withOpacity(0.8),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                          color: const Color.fromARGB(
+                                            255,
+                                            0,
+                                            0,
+                                            0,
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _obscurePassword =
+                                                !_obscurePassword;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter a password';
+                                      }
+                                      if (value.length < 6) {
+                                        return 'Password must be at least 6 characters';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+
+                                  const SizedBox(height: 24),
+
+                                  // Child Information Section
+                                  Text(
+                                    'Child Information',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Child Name Field
+                                  TextFormField(
+                                    controller: _childNameController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Child\'s Name',
+                                      labelStyle: GoogleFonts.comicNeue(),
+                                      filled: true,
+                                      fillColor: Colors.white.withOpacity(0.8),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter your child\'s name';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  // Age Range Dropdown
+                                  DropdownButtonFormField<String>(
+                                    value: _selectedAgeRange,
+                                    items: _ageRanges.map((age) {
+                                      return DropdownMenuItem(
                                         value: age,
                                         child: Row(
                                           children: [
@@ -393,123 +369,115 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                                             const SizedBox(width: 8),
                                             Text(
                                               age,
-                                              style: GoogleFonts.poppins(),
+                                              style: GoogleFonts.comicNeue(),
                                             ),
                                           ],
                                         ),
                                       );
                                     }).toList(),
-                                    onChanged: (String? newValue) {
-                                      setState(() {
-                                        _selectedAgeRange = newValue!;
-                                      });
+                                    onChanged: (val) {
+                                      setState(() => _selectedAgeRange = val!);
                                     },
-                                  ),
-                                ),
-                                
-                                const SizedBox(height: 30),
-                                
-                                // Sign Up Button
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 55,
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading ? null : _signUp,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF66BB6A),
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(15),
+                                    decoration: InputDecoration(
+                                      labelText: 'Child Age Range',
+                                      labelStyle: GoogleFonts.comicNeue(),
+                                      filled: true,
+                                      fillColor: Colors.white.withOpacity(0.8),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
-                                      elevation: 5,
                                     ),
-                                    child: _isLoading
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : Text(
-                                            'Begin Adventure! 🚀',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
                                   ),
-                                ),
-                                
-                                const SizedBox(height: 20),
-                                
-                                // OR Divider
-                                Row(
-                                  children: [
-                                    Expanded(child: Divider(color: Colors.grey.shade300)),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                                  const SizedBox(height: 24),
+
+                                  // Sign Up Button
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 55,
+                                    child: ElevatedButton(
+                                      onPressed: _isLoading ? null : _signUp,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color.fromARGB(
+                                          255,
+                                          2,
+                                          2,
+                                          2,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                          horizontal: 32,
+                                        ),
+                                      ),
                                       child: Text(
-                                        'OR',
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.grey.shade600,
-                                          fontWeight: FontWeight.w500,
+                                        _isLoading
+                                            ? 'Signing Up...'
+                                            : 'Sign Up',
+                                        style: GoogleFonts.comicNeue(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
                                         ),
                                       ),
                                     ),
-                                    Expanded(child: Divider(color: Colors.grey.shade300)),
-                                  ],
-                                ),
-                                
-                                const SizedBox(height: 20),
-                              ],
+                                  ),
+
+                                  const SizedBox(height: 16),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        
-                        const SizedBox(height: 30),
-                        
-                        // Login Link
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Already have an account? ",
-                              style: GoogleFonts.poppins(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 16,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                                );
-                              },
-                              child: Text(
-                                'Sign In',
+
+                          const SizedBox(height: 30),
+
+                          // Login Link
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Already have an account? ",
                                 style: GoogleFonts.poppins(
-                                  color: Colors.white,
+                                  color: Colors.white.withOpacity(0.9),
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  );
-                },
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const LoginScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  'Sign In',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

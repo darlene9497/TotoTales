@@ -3,6 +3,7 @@
 import 'dart:math' show cos, sin;
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
 import 'package:toto_tales/widgets/age_category_card.dart';
@@ -15,7 +16,7 @@ import 'age_range_story_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String? registeredAgeRange;
-  
+
   const HomeScreen({super.key, this.registeredAgeRange});
 
   @override
@@ -29,48 +30,39 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _headerFadeAnimation;
   late Animation<double> _starsAnimation;
   int _currentIndex = 0;
-  
-  // Default age range if not provided (you might want to handle this differently)
+
+  // Default age range if not provided
   String get childAgeRange => widget.registeredAgeRange ?? '3-5';
 
   @override
   void initState() {
     super.initState();
-    
+
     _headerController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _starsController = AnimationController(
       duration: const Duration(seconds: 8),
       vsync: this,
     )..repeat();
-    
-    _headerSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, -0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _headerController,
-      curve: Curves.easeOutBack,
-    ));
-    
+
+    _headerSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, -0.5), end: Offset.zero).animate(
+          CurvedAnimation(parent: _headerController, curve: Curves.easeOutBack),
+        );
+
     _headerFadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _headerController,
-      curve: Curves.easeIn,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _headerController, curve: Curves.easeIn));
+
     _starsAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _starsController,
-      curve: Curves.linear,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _starsController, curve: Curves.linear));
+
     _headerController.forward();
   }
 
@@ -97,11 +89,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           title: Row(
             children: [
-              Icon(
-                Icons.lock,
-                color: AppColors.textMedium,
-                size: 24,
-              ),
+              Icon(Icons.lock, color: AppColors.textMedium, size: 24),
               SizedBox(width: 8),
               Text(
                 'Age Restricted',
@@ -130,10 +118,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
               child: Text(
                 'OK',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -147,22 +132,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
-          // Background with animated stars
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.backgroundYellow,
-                  AppColors.backgroundYellowLight,
-                  AppColors.backgroundYellowDark,
-                ],
-              ),
+          // Cartoon background image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/backgrounds/home.jpg',
+              fit: BoxFit.cover,
             ),
           ),
-          
-          // Animated stars
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.35),
+            ),
+          ),
+
+          // Animated stars overlay
           AnimatedBuilder(
             animation: _starsAnimation,
             builder: (context, child) {
@@ -172,14 +155,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               );
             },
           ),
-          
+
+          // Decorative clouds (top corners)
+          Positioned(
+            top: 0,
+            left: 0,
+            child: Image.asset(
+              'assets/images/backgrounds/cloud1.png',
+              width: 100,
+              height: 60,
+            ),
+          ),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Image.asset(
+              'assets/images/backgrounds/cloud1.png',
+              width: 80,
+              height: 50,
+            ),
+          ),
+
           // Main content
           SafeArea(
             child: Padding(
               padding: EdgeInsets.all(AppConstants.defaultPadding),
               child: Column(
                 children: [
-                  // Header
                   AnimatedBuilder(
                     animation: _headerController,
                     builder: (context, child) {
@@ -187,12 +189,53 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         position: _headerSlideAnimation,
                         child: FadeTransition(
                           opacity: _headerFadeAnimation,
-                          child: _buildHeader(),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ScaleTransition(
+                                scale: Tween<double>(begin: 0.8, end: 1.1)
+                                    .animate(
+                                      CurvedAnimation(
+                                        parent: _headerController,
+                                        curve: Curves.elasticOut,
+                                      ),
+                                    ),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Hello, Little Reader 👋',
+                                    style: GoogleFonts.comicNeue(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color.fromARGB(255, 255, 255, 255),
+                                      shadows: [
+                                        Shadow(
+                                          blurRadius: 8,
+                                          color: const Color.fromARGB(255, 255, 255, 255),
+                                          offset: Offset(2, 2),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    'Pick Your Story Zone',
+                                    style: GoogleFonts.comicNeue(
+                                      fontSize: 18,
+                                      color: const Color.fromARGB(255, 255, 255, 255),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
                   ),
-                  
+                  const SizedBox(height: 10),
                   // Centered cards with equal spacing
                   Expanded(
                     child: SingleChildScrollView(
@@ -204,54 +247,61 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             duration: const Duration(milliseconds: 500),
                             childAnimationBuilder: (widget) => SlideAnimation(
                               verticalOffset: 50.0,
-                              child: FadeInAnimation(
-                                child: widget,
-                              ),
+                              child: FadeInAnimation(child: widget),
                             ),
                             children: [
                               AgeCategoryCard(
-                                imagePath: 'assets/images/backgrounds/cloud1.png',
+                                imagePath: 'assets/images/backgrounds/child1.jpg',
                                 title: AppConstants.littleExplorers,
                                 ageRange: AppConstants.littleExplorersAge,
                                 description: AppConstants.littleExplorersDescription,
-                                primaryColor: AppColors.littleExplorers,
-                                secondaryColor: AppColors.littleExplorersDark,
+                                accentColor: AppColors.littleExplorers,
+                                isEnabled: _isAgeRangeEnabled('3-5'),
                                 onTap: _isAgeRangeEnabled('3-5')
                                     ? () => _navigateToStoryLibrary('3-5')
-                                    : _showLockedDialog,
+                                    : null,
+                                onLockedTap: !_isAgeRangeEnabled('3-5')
+                                    ? _showLockedDialog
+                                    : null,
                               ),
                               SizedBox(height: 20),
                               AgeCategoryCard(
-                                imagePath: 'assets/images/backgrounds/butterfly.png',
+                                imagePath: 'assets/images/backgrounds/child2.jpg',
                                 title: AppConstants.brightLearners,
                                 ageRange: AppConstants.brightLearnersAge,
                                 description: AppConstants.brightLearnersDescription,
-                                primaryColor: AppColors.brightLearners,
-                                secondaryColor: AppColors.brightLearnersDark,
+                                accentColor: AppColors.brightLearners,
+                                isEnabled: _isAgeRangeEnabled('6-8'),
                                 onTap: _isAgeRangeEnabled('6-8')
                                     ? () => _navigateToStoryLibrary('6-8')
-                                    : _showLockedDialog,
+                                    : null,
+                                onLockedTap: !_isAgeRangeEnabled('6-8')
+                                    ? _showLockedDialog
+                                    : null,
                               ),
                               SizedBox(height: 20),
                               AgeCategoryCard(
-                                imagePath: 'assets/images/backgrounds/sun.png',
+                                imagePath: 'assets/images/backgrounds/child3.jpg',
                                 title: AppConstants.juniorDreamers,
                                 ageRange: AppConstants.juniorDreamersAge,
                                 description: AppConstants.juniorDreamersDescription,
-                                primaryColor: AppColors.juniorDreamers,
-                                secondaryColor: AppColors.juniorDreamersDark,
+                                accentColor: AppColors.juniorDreamers,
+                                isEnabled: _isAgeRangeEnabled('9-12'),
                                 onTap: _isAgeRangeEnabled('9-12')
                                     ? () => _navigateToStoryLibrary('9-12')
-                                    : _showLockedDialog,
+                                    : null,
+                                onLockedTap: !_isAgeRangeEnabled('9-12')
+                                    ? _showLockedDialog
+                                    : null,
                               ),
                               SizedBox(height: 20),
                               AgeCategoryCard(
-                                imagePath: 'assets/images/backgrounds/bee.png',
+                                imagePath: 'assets/images/backgrounds/child4.jpg',
                                 title: 'Explore All',
                                 ageRange: 'All Ages',
-                                description: 'See and generate stories from all age categories!',
-                                primaryColor: AppColors.primary,
-                                secondaryColor: AppColors.primary.withOpacity(0.7),
+                                description: 'See and generate stories from all age categories',
+                                accentColor: AppColors.primary,
+                                isEnabled: true,
                                 onTap: () => _navigateToStoryLibrary('All'),
                               ),
                             ],
@@ -259,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                  ),
+                  ),                  
                 ],
               ),
             ),
@@ -276,34 +326,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHeader() {
-    return Center(
-      child: Column(
-        children: [
-          Text(
-            'Hello, Little Reader 👋',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textDark,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 5),
-          Text(
-            'Pick Your Story Zone',
-            style: TextStyle(
-              fontSize: 18,
-              color: AppColors.textMedium,
-              fontWeight: FontWeight.w400,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
   void _handleNavigation(int index) {
     switch (index) {
       case 0:
@@ -313,7 +335,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => StoryLibraryScreen(selectedAgeRange: childAgeRange),
+            builder: (context) =>
+                StoryLibraryScreen(selectedAgeRange: childAgeRange),
           ),
         );
         break;
@@ -321,7 +344,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AffirmationScreen(selectedAgeRange: _getAgeRangeDisplay(childAgeRange)),
+            builder: (context) => AffirmationScreen(
+              selectedAgeRange: _getAgeRangeDisplay(childAgeRange),
+            ),
           ),
         );
         break;
@@ -422,22 +447,22 @@ class StarsPainter extends CustomPainter {
       final y = size.height * (star['y'] as double);
       final starSize = star['size'] as double;
       final speed = star['speed'] as double;
-      
+
       // Calculate rotation based on animation and speed
       final rotation = animation * speed * 2 * 3.14159;
-      
+
       canvas.save();
       canvas.translate(x, y);
       canvas.rotate(rotation);
-      
+
       // Draw star shape
       _drawStar(canvas, starSize > 6 ? paint : smallStarPaint, starSize);
-      
+
       // Add sparkle effect for larger stars
       if (starSize > 6) {
         _drawSparkle(canvas, sparkPaint, starSize * 1.5);
       }
-      
+
       canvas.restore();
     }
   }
@@ -446,16 +471,16 @@ class StarsPainter extends CustomPainter {
     final path = Path();
     final double radius = size;
     final double innerRadius = radius * 0.4;
-    
+
     for (int i = 0; i < 5; i++) {
       final double angle = (i * 2 * 3.14159) / 5 - 3.14159 / 2;
       final double innerAngle = ((i + 0.5) * 2 * 3.14159) / 5 - 3.14159 / 2;
-      
+
       final double x = radius * cos(angle);
       final double y = radius * sin(angle);
       final double innerX = innerRadius * cos(innerAngle);
       final double innerY = innerRadius * sin(innerAngle);
-      
+
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -464,21 +489,27 @@ class StarsPainter extends CustomPainter {
       path.lineTo(innerX, innerY);
     }
     path.close();
-    
+
     canvas.drawPath(path, paint);
   }
 
   void _drawSparkle(Canvas canvas, Paint paint, double size) {
     // Draw cross sparkle
-    canvas.drawLine(Offset(-size/2, 0), Offset(size/2, 0), paint);
-    canvas.drawLine(Offset(0, -size/2), Offset(0, size/2), paint);
-    
+    canvas.drawLine(Offset(-size / 2, 0), Offset(size / 2, 0), paint);
+    canvas.drawLine(Offset(0, -size / 2), Offset(0, size / 2), paint);
+
     // Draw diagonal sparkle
     final diagonalSize = size * 0.7;
-    canvas.drawLine(Offset(-diagonalSize/2, -diagonalSize/2), 
-                   Offset(diagonalSize/2, diagonalSize/2), paint);
-    canvas.drawLine(Offset(-diagonalSize/2, diagonalSize/2), 
-                   Offset(diagonalSize/2, -diagonalSize/2), paint);
+    canvas.drawLine(
+      Offset(-diagonalSize / 2, -diagonalSize / 2),
+      Offset(diagonalSize / 2, diagonalSize / 2),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(-diagonalSize / 2, diagonalSize / 2),
+      Offset(diagonalSize / 2, -diagonalSize / 2),
+      paint,
+    );
   }
 
   @override

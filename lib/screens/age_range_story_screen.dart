@@ -16,13 +16,18 @@ import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 class AgeRangeStoryScreen extends StatefulWidget {
   final String ageRange;
   final String? screenTitle;
-  const AgeRangeStoryScreen({Key? key, required this.ageRange, this.screenTitle}) : super(key: key);
+  const AgeRangeStoryScreen({
+    Key? key,
+    required this.ageRange,
+    this.screenTitle,
+  }) : super(key: key);
 
   @override
   _AgeRangeStoryScreenState createState() => _AgeRangeStoryScreenState();
 }
 
-class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerProviderStateMixin {
+class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen>
+    with TickerProviderStateMixin {
   late AnimationController _headerController;
   late AnimationController _fabController;
   late Animation<Offset> _headerSlideAnimation;
@@ -33,7 +38,10 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
   bool _isLoading = false;
   bool _isGenerating = false;
   String _selectedLanguage = 'English';
-  final List<String> _backgrounds = List.generate(20, (i) => 'assets/images/story_bgs/bg${i + 1}.jpg');
+  final List<String> _backgrounds = List.generate(
+    20,
+    (i) => 'assets/images/story_bgs/bg${i + 1}.jpg',
+  );
   final Random _random = Random();
   Set<String> _savedStoryIds = {};
   Set<String> _completedStoryIds = {};
@@ -83,27 +91,17 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _headerSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, -0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _headerController,
-      curve: Curves.easeOutBack,
-    ));
+    _headerSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, -0.5), end: Offset.zero).animate(
+          CurvedAnimation(parent: _headerController, curve: Curves.easeOutBack),
+        );
     _headerFadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _headerController,
-      curve: Curves.easeIn,
-    ));
-    _fabScaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fabController,
-      curve: Curves.elasticOut,
-    ));
+    ).animate(CurvedAnimation(parent: _headerController, curve: Curves.easeIn));
+    _fabScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fabController, curve: Curves.elasticOut),
+    );
     _headerController.forward();
     Future.delayed(Duration(milliseconds: 500), () {
       _fabController.forward();
@@ -118,11 +116,15 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
   }
 
   Future<void> _loadStories() async {
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
     try {
       final user = fb_auth.FirebaseAuth.instance.currentUser;
       if (user == null) {
-        setState(() { _isLoading = false; });
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
       final storiesRef = FirebaseFirestore.instance
@@ -130,47 +132,67 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
           .doc(user.uid)
           .collection('stories');
       final snapshot = await storiesRef.get();
-      _stories = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        if (data['createdAt'] is String) {
-          data['createdAt'] = DateTime.tryParse(data['createdAt']) ?? DateTime.now();
-        }
-        return data;
-      }).where((story) => story['ageRange'] == widget.ageRange).toList();
+      _stories = snapshot.docs
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            if (data['createdAt'] is String) {
+              data['createdAt'] =
+                  DateTime.tryParse(data['createdAt']) ?? DateTime.now();
+            }
+            return data;
+          })
+          .where((story) => story['ageRange'] == widget.ageRange)
+          .toList();
     } catch (e) {
       print('Error loading stories: $e');
     } finally {
-      setState(() { _isLoading = false; });
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   Future<void> _generateNewStory() async {
-    setState(() { _isGenerating = true; });
-    
+    setState(() {
+      _isGenerating = true;
+    });
+
     // Get current language preference
     final currentLanguage = await LanguageService.getCurrentLanguage();
     setState(() {
       _selectedLanguage = currentLanguage;
     });
-    
+
     final userAge = widget.ageRange;
-    final themes = ['friendship', 'courage', 'kindness', 'adventure', 'imagination', 
-                  'helping', 'sharing', 'animals', 'nature', 'dreams', 'space', 'magic'];
+    final themes = [
+      'friendship',
+      'courage',
+      'kindness',
+      'adventure',
+      'imagination',
+      'helping',
+      'sharing',
+      'animals',
+      'nature',
+      'dreams',
+      'space',
+      'magic',
+    ];
     final theme = (themes..shuffle()).first;
-    
+
     try {
       final story = await GeminiService.generateStory(
         ageRange: userAge,
         language: _selectedLanguage, // Use current language preference
         theme: theme,
       );
-      
+
       // Assign a random background image from assets
       final coverImage = _backgrounds[_random.nextInt(_backgrounds.length)];
       story['coverImageUrl'] = coverImage;
       _stories.insert(0, story);
       await _saveStories();
-      
+
       // Show success message with language info
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -178,33 +200,46 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
           backgroundColor: AppColors.primary,
         ),
       );
-      
     } catch (e) {
       // Create fallback story with current language
-      final fallbackStory = _createFallbackStory(theme, userAge, _selectedLanguage);
+      final fallbackStory = _createFallbackStory(
+        theme,
+        userAge,
+        _selectedLanguage,
+      );
       _stories.insert(0, fallbackStory);
       await _saveStories();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Story created in $_selectedLanguage (fallback content)'),
+          content: Text(
+            'Story created in $_selectedLanguage (fallback content)',
+          ),
           backgroundColor: AppColors.primary,
         ),
       );
     } finally {
-      setState(() { _isGenerating = false; });
+      setState(() {
+        _isGenerating = false;
+      });
     }
   }
 
   // Helper method to create fallback story
-  Map<String, dynamic> _createFallbackStory(String theme, String userAge, String language) {
+  Map<String, dynamic> _createFallbackStory(
+    String theme,
+    String userAge,
+    String language,
+  ) {
     return {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'title': 'The Amazing ${theme.substring(0, 1).toUpperCase()}${theme.substring(1)} Adventure',
+      'title':
+          'The Amazing ${theme.substring(0, 1).toUpperCase()}${theme.substring(1)} Adventure',
       'theme': theme,
       'ageRange': userAge,
       'language': language, // Use current language
-      'content': 'Once upon a time, there was a wonderful adventure about $theme...',
+      'content':
+          'Once upon a time, there was a wonderful adventure about $theme...',
       'lesson': 'This story teaches us about $theme',
       'createdAt': DateTime.now(),
       'popularity': 0,
@@ -255,7 +290,11 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isFavorited ? 'Story removed from favorites' : 'Story saved to favorites'),
+            content: Text(
+              isFavorited
+                  ? 'Story removed from favorites'
+                  : 'Story saved to favorites',
+            ),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -271,11 +310,14 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
     }
   }
 
-  Future<void> _markStoryAsCompleted(String storyId, Map<String, dynamic> storyData) async {
+  Future<void> _markStoryAsCompleted(
+    String storyId,
+    Map<String, dynamic> storyData,
+  ) async {
     try {
       final story = _mapToStory(storyData);
       final success = await ProfileService.markAsCompleted(story);
-      
+
       if (success) {
         setState(() {
           _completedStoryIds.add(storyId);
@@ -291,26 +333,8 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
       expandedHeight: 120,
       floating: true,
       pinned: true,
-      backgroundColor: AppColors.backgroundYellow,
+      backgroundColor: Colors.transparent,
       elevation: 0,
-      leading: Container(
-        margin: EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: AppColors.textDark),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       flexibleSpace: FlexibleSpaceBar(
         background: SlideTransition(
           position: _headerSlideAnimation,
@@ -318,16 +342,39 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
             opacity: _headerFadeAnimation,
             child: Container(
               padding: EdgeInsets.fromLTRB(80, 40, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    widget.screenTitle ?? _getGreeting(widget.ageRange),
-                    style: GoogleFonts.poppins(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
+                  Image.asset(
+                    'assets/icons/hello.png',
+                    width: 100,
+                    height: 100,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.yellow.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.yellow.shade200,
+                            blurRadius: 8,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        widget.screenTitle ?? _getGreeting(widget.ageRange),
+                        style: GoogleFonts.comicNeue(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                          letterSpacing: 1.2,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ],
@@ -339,49 +386,16 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
     );
   }
 
-   Widget _buildLanguageIndicator() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.language,
-            color: AppColors.primary,
-            size: 16,
-          ),
-          SizedBox(width: 4),
-          Text(
-            _selectedLanguage,
-            style: GoogleFonts.poppins(
-              color: AppColors.primary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _getGreeting(String ageRange) {
     switch (ageRange) {
       case 'Ages 3-5':
-        return 'Hello, Little Explorer';
+        return 'Little Explorer';
       case 'Ages 6-8':
-        return 'Hi, Bright Learner';
+        return 'Bright Learner';
       case 'Ages 9-12':
-        return 'Welcome, Junior Dreamer';
+        return 'Junior Dreamer';
       default:
-        return 'Hello, Adventurer';
+        return 'Adventurer';
     }
   }
 
@@ -424,9 +438,7 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
             duration: const Duration(milliseconds: 375),
             columnCount: 2,
             child: ScaleAnimation(
-              child: FadeInAnimation(
-                child: _buildStoryCard(_stories[index]),
-              ),
+              child: FadeInAnimation(child: _buildStoryCard(_stories[index])),
             ),
           ),
           childCount: _stories.length,
@@ -438,7 +450,9 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
   Widget _buildStoryCard(Map<String, dynamic> story) {
     final isSaved = _savedStoryIds.contains(story['id']);
     final isCompleted = _completedStoryIds.contains(story['id']);
-    final coverImage = story['coverImageUrl'] ?? _backgrounds[_random.nextInt(_backgrounds.length)];
+    final coverImage =
+        story['coverImageUrl'] ??
+        _backgrounds[_random.nextInt(_backgrounds.length)];
 
     return GestureDetector(
       onTap: () => _navigateToStoryReader(_mapToStory(story)),
@@ -477,10 +491,16 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
                     right: 0,
                     child: Center(
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.green.shade400, Colors.green.shade600],
+                            colors: [
+                              Colors.green.shade400,
+                              Colors.green.shade600,
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
@@ -537,8 +557,12 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
                       ),
                       padding: EdgeInsets.all(8),
                       child: Icon(
-                        isSaved ? Icons.star_rounded : Icons.star_border_rounded,
-                        color: isSaved ? AppColors.primary : AppColors.textMedium,
+                        isSaved
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: isSaved
+                            ? AppColors.primary
+                            : AppColors.textMedium,
                         size: 24,
                       ),
                     ),
@@ -582,26 +606,25 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
       'Spanish': '🇪🇸',
       'Portuguese': '🇵🇹',
     };
-    return Text(
-      flagMap[language] ?? '🏳️',
-      style: TextStyle(fontSize: 18),
-    );
+    return Text(flagMap[language] ?? '🏳️', style: TextStyle(fontSize: 18));
   }
 
   String _formatThemeName(String theme) {
-    return theme.split('').first.toUpperCase() + theme.substring(1).toLowerCase();
+    return theme.split('').first.toUpperCase() +
+        theme.substring(1).toLowerCase();
   }
 
   Widget _buildStoryTag(String text, {bool isTheme = false}) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isTheme ? AppColors.primary.withOpacity(0.1) : AppColors.backgroundYellow,
+        color: isTheme
+            ? AppColors.primary.withOpacity(0.1)
+            : AppColors.backgroundYellow,
         borderRadius: BorderRadius.circular(8),
-        border: isTheme ? Border.all(
-          color: AppColors.primary.withOpacity(0.3),
-          width: 1,
-        ) : null,
+        border: isTheme
+            ? Border.all(color: AppColors.primary.withOpacity(0.3), width: 1)
+            : null,
       ),
       child: Text(
         text,
@@ -651,7 +674,9 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
   }
 
   Story _mapToStory(Map<String, dynamic> data) {
-    final images = data['pageImages'] is List ? List<String>.from(data['pageImages']) : <String>[];
+    final images = data['pageImages'] is List
+        ? List<String>.from(data['pageImages'])
+        : <String>[];
     return Story(
       id: data['id'] ?? '',
       title: data['title'] ?? '',
@@ -660,26 +685,30 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
       category: data['theme'] ?? 'General',
       coverImageUrl: data['coverImageUrl'] ?? '',
       description: data['lesson'] ?? '',
-      dateAdded: data['createdAt'] is DateTime ? data['createdAt'] : DateTime.now(),
+      dateAdded: data['createdAt'] is DateTime
+          ? data['createdAt']
+          : DateTime.now(),
       popularity: data['popularity'] ?? 0,
       pages: _splitStoryToPages(data['content'] ?? '', images),
     );
   }
 
   List<StoryPage> _splitStoryToPages(String content, List<String> images) {
-    final paragraphs = content.split(RegExp(r'\n+'))
-        .where((p) {
-          final clean = p.trim().toLowerCase();
-          return clean.isNotEmpty &&
-                 !RegExp(r'^page\s*\d+:?$', caseSensitive: false).hasMatch(clean) &&
-                 clean != 'story:' && clean != 'story';
-        })
-        .toList();
-    return List.generate(paragraphs.length, (i) => StoryPage(
-      pageNumber: i + 1,
-      imageUrl: i < images.length ? images[i] : '',
-      text: paragraphs[i],
-    ));
+    final paragraphs = content.split(RegExp(r'\n+')).where((p) {
+      final clean = p.trim().toLowerCase();
+      return clean.isNotEmpty &&
+          !RegExp(r'^page\s*\d+:?$', caseSensitive: false).hasMatch(clean) &&
+          clean != 'story:' &&
+          clean != 'story';
+    }).toList();
+    return List.generate(
+      paragraphs.length,
+      (i) => StoryPage(
+        pageNumber: i + 1,
+        imageUrl: i < images.length ? images[i] : '',
+        text: paragraphs[i],
+      ),
+    );
   }
 
   void _navigateToStoryReader(Story story) async {
@@ -706,10 +735,7 @@ class _AgeRangeStoryScreenState extends State<AgeRangeStoryScreen> with TickerPr
     return Scaffold(
       backgroundColor: AppColors.backgroundYellow,
       body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(),
-          _buildStoryGrid(),
-        ],
+        slivers: [_buildSliverAppBar(), _buildStoryGrid()],
       ),
       floatingActionButton: ScaleTransition(
         scale: _fabScaleAnimation,

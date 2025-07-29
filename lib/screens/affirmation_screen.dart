@@ -17,7 +17,8 @@ class AffirmationScreen extends StatefulWidget {
   State<AffirmationScreen> createState() => _AffirmationScreenState();
 }
 
-class _AffirmationScreenState extends State<AffirmationScreen> with TickerProviderStateMixin {
+class _AffirmationScreenState extends State<AffirmationScreen>
+    with TickerProviderStateMixin {
   final FlutterTts _flutterTts = FlutterTts();
   late AnimationController _fadeController;
   late AnimationController _scaleController;
@@ -27,12 +28,12 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
   late Animation<double> _scaleAnimation;
   late Animation<double> _sparkleAnimation;
   late Animation<double> _quotationAnimation;
-  
+
   Affirmation? _currentAffirmation;
   bool _isLoading = false; // Changed to false for instant backup loading
   String? _error;
   bool _isUsingBackup = false;
-  
+
   // Backup affirmations for instant loading
   final Map<String, Map<String, List<String>>> _backupAffirmations = {
     'Ages 3-5': {
@@ -41,36 +42,36 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
         "I can do amazing things every day!",
         "I am special and loved by everyone!",
         "I am learning and growing every day!",
-        "I believe in myself and my dreams!"
+        "I believe in myself and my dreams!",
       ],
       'courage': [
         "I am not afraid to try new things!",
         "I am brave like a lion!",
         "I can face any challenge with a smile!",
         "I am strong and fearless!",
-        "I turn my fears into fun adventures!"
+        "I turn my fears into fun adventures!",
       ],
       'self-love': [
         "I love myself just the way I am!",
         "I am wonderful and unique!",
         "I deserve all the love in the world!",
         "I am precious and important!",
-        "I celebrate being me every day!"
+        "I celebrate being me every day!",
       ],
       'friendship': [
         "I am a good friend who cares!",
         "I share and play nicely with others!",
         "I make friends easily!",
         "I am kind to everyone I meet!",
-        "Friends love being around me!"
+        "Friends love being around me!",
       ],
       'learning': [
         "Learning is fun and exciting!",
         "I love discovering new things!",
         "My brain is growing stronger!",
         "I ask great questions!",
-        "Every mistake helps me learn!"
-      ]
+        "Every mistake helps me learn!",
+      ],
     },
     'Ages 6-8': {
       'self-confidence': [
@@ -78,36 +79,36 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
         "I can accomplish anything I set my mind to!",
         "I am confident in who I am becoming!",
         "I trust myself to make good choices!",
-        "I am proud of my unique qualities!"
+        "I am proud of my unique qualities!",
       ],
       'courage': [
         "I face challenges with determination!",
         "I am brave enough to stand up for what's right!",
         "I turn obstacles into opportunities!",
         "I have the courage to be myself!",
-        "I am not afraid to make mistakes and learn!"
+        "I am not afraid to make mistakes and learn!",
       ],
       'self-love': [
         "I accept and love myself completely!",
         "I treat myself with kindness and respect!",
         "I am worthy of love and happiness!",
         "I celebrate my achievements, big and small!",
-        "I am enough, just as I am!"
+        "I am enough, just as I am!",
       ],
       'friendship': [
         "I am a loyal and trustworthy friend!",
         "I attract positive friendships into my life!",
         "I communicate well with my friends!",
         "I support my friends in their dreams!",
-        "I create lasting, meaningful friendships!"
+        "I create lasting, meaningful friendships!",
       ],
       'learning': [
         "I am curious and love to explore new ideas!",
         "Every day brings new learning opportunities!",
         "I am smart and capable of understanding anything!",
         "I enjoy challenging myself academically!",
-        "Learning makes me feel accomplished and proud!"
-      ]
+        "Learning makes me feel accomplished and proud!",
+      ],
     },
     'Ages 9-12': {
       'self-confidence': [
@@ -115,37 +116,37 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
         "I am developing into an amazing person!",
         "I trust my instincts and inner wisdom!",
         "I am capable of handling whatever comes my way!",
-        "I stand tall and speak with confidence!"
+        "I stand tall and speak with confidence!",
       ],
       'courage': [
         "I have the courage to pursue my dreams!",
         "I am resilient and bounce back from setbacks!",
         "I face my fears and grow stronger!",
         "I am brave enough to be different!",
-        "I take on challenges as opportunities to grow!"
+        "I take on challenges as opportunities to grow!",
       ],
       'self-love': [
         "I honor my feelings and treat myself with compassion!",
         "I am learning to love and accept all parts of myself!",
         "I deserve respect from myself and others!",
         "I celebrate my progress and personal growth!",
-        "I am worthy of pursuing my dreams and goals!"
+        "I am worthy of pursuing my dreams and goals!",
       ],
       'friendship': [
         "I choose friends who support and encourage me!",
         "I am a good listener and caring friend!",
         "I build relationships based on mutual respect!",
         "I stand by my friends through good times and challenges!",
-        "I attract friendships that help me grow as a person!"
+        "I attract friendships that help me grow as a person!",
       ],
       'learning': [
         "I embrace challenges as chances to expand my knowledge!",
         "I am developing critical thinking skills!",
         "I take responsibility for my learning and growth!",
         "I see education as a pathway to my future goals!",
-        "I am building the foundation for my dreams through learning!"
-      ]
-    }
+        "I am building the foundation for my dreams through learning!",
+      ],
+    },
   };
 
   @override
@@ -179,7 +180,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
@@ -197,28 +198,24 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
   Affirmation _getBackupAffirmation([String? category]) {
     final ageRangeData = _backupAffirmations[widget.selectedAgeRange]!;
     final availableCategories = ageRangeData.keys.toList();
-    
-    final selectedCategory = category ?? availableCategories[DateTime.now().millisecond % availableCategories.length];
+
+    final selectedCategory =
+        category ??
+        availableCategories[DateTime.now().millisecond %
+            availableCategories.length];
     final categoryAffirmations = ageRangeData[selectedCategory]!;
-    final selectedText = categoryAffirmations[DateTime.now().second % categoryAffirmations.length];
-    
+    final selectedText =
+        categoryAffirmations[DateTime.now().second %
+            categoryAffirmations.length];
+
     return Affirmation(
       id: 'backup_${DateTime.now().millisecondsSinceEpoch}',
       text: selectedText,
       category: selectedCategory,
       ageRange: widget.selectedAgeRange,
-      backgroundImageUrl: 'assets/images/affirmation_bg_${widget.selectedAgeRange.replaceAll(' ', '_').toLowerCase()}.jpg',
+      backgroundImageUrl:
+          'assets/images/affirmation_bg_${widget.selectedAgeRange.replaceAll(' ', '_').toLowerCase()}.jpg',
     );
-  }
-
-  void _handleError(dynamic error) {
-    setState(() {
-      _isUsingBackup = true;
-      _currentAffirmation = _getBackupAffirmation();
-      _error = null;
-      _isLoading = false;
-    });
-    _startAnimations();
   }
 
   @override
@@ -238,11 +235,13 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
       _isLoading = false;
     });
     _startAnimations();
-    
+
     // Try to get AI affirmation in background
     try {
-      final affirmation = await AffirmationsData.getDailyAffirmation(widget.selectedAgeRange);
-      
+      final affirmation = await AffirmationsData.getDailyAffirmation(
+        widget.selectedAgeRange,
+      );
+
       if (mounted) {
         setState(() {
           _currentAffirmation = affirmation;
@@ -270,18 +269,20 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
       _isLoading = false;
       _isUsingBackup = true;
     });
-    
+
     _fadeController.reset();
     _scaleController.reset();
     _sparkleController.reset();
     _quotationController.reset();
-    
+
     _startAnimations();
-    
+
     // Try to get AI affirmation in background
     try {
-      final affirmation = await AffirmationsData.getRandomAffirmation(widget.selectedAgeRange);
-      
+      final affirmation = await AffirmationsData.getRandomAffirmation(
+        widget.selectedAgeRange,
+      );
+
       if (mounted) {
         setState(() {
           _currentAffirmation = affirmation;
@@ -324,33 +325,64 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _getAgeColor().withOpacity(0.05),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: _getAgeColor()),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          "✨ Magical Affirmations ✨",
-          style: GoogleFonts.poppins(
-            color: _getAgeColor(),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(90),
+        child: Container(
+          padding: const EdgeInsets.only(
+            top: 24,
+            left: 16,
+            right: 16,
+            bottom: 10,
+          ),
+          decoration: BoxDecoration(color: Colors.transparent),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _getAgeColor().withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    Icons.arrow_back_ios_rounded,
+                    color: _getAgeColor(),
+                    size: 28,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Image.asset(
+              //   'assets/images/affirmation_kid.png',
+              //   height: 48,
+              //   width: 48,
+              // ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "Magical Affirmations",
+                  style: GoogleFonts.comicNeue(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: _getAgeColor(),
+                    shadows: [
+                      Shadow(
+                        blurRadius: 8,
+                        color: _getAgeColor().withOpacity(0.3),
+                        offset: Offset(2, 2),
+                      ),
+                    ],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.auto_awesome, color: _getAgeColor(), size: 28),
+            ],
           ),
         ),
-        centerTitle: true,
-        actions: [
-          if (_isUsingBackup)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Icon(
-                Icons.offline_bolt,
-                color: _getAgeColor().withOpacity(0.7),
-                size: 20,
-              ),
-            ),
-        ],
       ),
       body: _buildBody(),
     );
@@ -360,11 +392,11 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
     if (_isLoading && _currentAffirmation == null) {
       return _buildLoadingState();
     }
-    
+
     if (_error != null && _currentAffirmation == null) {
       return _buildErrorState();
     }
-    
+
     return _buildAffirmationContent();
   }
 
@@ -379,10 +411,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
           const SizedBox(height: 20),
           Text(
             'Generating your magical words...',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: AppColors.textDark,
-            ),
+            style: GoogleFonts.poppins(fontSize: 16, color: AppColors.textDark),
           ),
         ],
       ),
@@ -426,7 +455,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
 
   Widget _buildAffirmationContent() {
     final affirmation = _currentAffirmation!;
-    
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Container(
@@ -448,34 +477,35 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
               ],
             ),
           ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Enhanced Sparkle Animation
-              _buildEnhancedSparkleAnimation(),
-              
-              // Main Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Enhanced Quote Card
-                      _buildEnhancedQuoteCard(affirmation),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Enhanced Action Buttons
-                      _buildEnhancedActionButtons(),
-                    ],
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Enhanced Sparkle Animation
+                _buildEnhancedSparkleAnimation(),
+
+                // Main Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Enhanced Quote Card
+                        _buildEnhancedQuoteCard(affirmation),
+
+                        const SizedBox(height: 40),
+
+                        // Enhanced Action Buttons
+                        _buildEnhancedActionButtons(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        )),
+        ),
       ),
     );
   }
@@ -484,24 +514,34 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
     return AnimatedBuilder(
       animation: _sparkleAnimation,
       builder: (context, child) {
-        return Container(
+        return SizedBox(
           height: 80,
           width: double.infinity,
           child: Stack(
             children: List.generate(8, (index) {
-              final double leftPosition = (MediaQuery.of(context).size.width / 8) * index;
-              final double topOffset = (index % 2 == 0 ? 10 : 30) + (_sparkleAnimation.value * 15);
-              
+              final double leftPosition =
+                  (MediaQuery.of(context).size.width / 8) * index;
+              final double topOffset =
+                  (index % 2 == 0 ? 10 : 30) + (_sparkleAnimation.value * 15);
+
               return Positioned(
                 top: topOffset,
-                left: leftPosition + (_sparkleAnimation.value * (index % 2 == 0 ? 10 : -10)),
+                left:
+                    leftPosition +
+                    (_sparkleAnimation.value * (index % 2 == 0 ? 10 : -10)),
                 child: Transform.rotate(
-                  angle: _sparkleAnimation.value * 6.28 * (index % 2 == 0 ? 1 : -1),
+                  angle:
+                      _sparkleAnimation.value *
+                      6.28 *
+                      (index % 2 == 0 ? 1 : -1),
                   child: Opacity(
                     opacity: 0.3 + (_sparkleAnimation.value * 0.7),
                     child: Icon(
-                      index % 3 == 0 ? Icons.auto_awesome : 
-                      index % 3 == 1 ? Icons.star : Icons.diamond,
+                      index % 3 == 0
+                          ? Icons.auto_awesome
+                          : index % 3 == 1
+                          ? Icons.star
+                          : Icons.diamond,
                       color: _getAgeColor(),
                       size: 16 + (_sparkleAnimation.value * 8),
                     ),
@@ -557,7 +597,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
                 ),
               ),
             ),
-            
+
             // Quote Content
             Padding(
               padding: const EdgeInsets.all(30),
@@ -588,9 +628,9 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
                       );
                     },
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // Main Affirmation Text
                   Text(
                     affirmation.text,
@@ -603,15 +643,18 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 25),
-                  
+
                   // Category and Source Info
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -638,7 +681,9 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              affirmation.category.replaceAll('-', ' ').toUpperCase(),
+                              affirmation.category
+                                  .replaceAll('-', ' ')
+                                  .toUpperCase(),
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -651,9 +696,9 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 15),
-                  
+
                   // Animated Closing Quote
                   AnimatedBuilder(
                     animation: _quotationAnimation,
@@ -742,11 +787,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.refresh_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                    Icon(Icons.refresh_rounded, color: Colors.white, size: 24),
                     const SizedBox(width: 12),
                     Text(
                       'New Magical Words',
@@ -763,9 +804,9 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Secondary Action Buttons Row
         Row(
           children: [
@@ -793,13 +834,18 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
             ),
           ],
         ),
-        
+
         const SizedBox(height: 30),
       ],
     );
   }
 
-  Widget _buildSecondaryButton(String text, IconData icon, Color color, VoidCallback onPressed) {
+  Widget _buildSecondaryButton(
+    String text,
+    IconData icon,
+    Color color,
+    VoidCallback onPressed,
+  ) {
     return Container(
       height: 55,
       decoration: BoxDecoration(
@@ -865,9 +911,9 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             Text(
               '✨ Choose Your Affirmation Category ✨',
               style: GoogleFonts.poppins(
@@ -877,9 +923,9 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             const SizedBox(height: 25),
-            
+
             // Category Grid
             GridView.count(
               shrinkWrap: true,
@@ -887,7 +933,9 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
               crossAxisSpacing: 15,
               mainAxisSpacing: 15,
               childAspectRatio: 2.2,
-              children: _backupAffirmations[widget.selectedAgeRange]!.keys.map((category) {
+              children: _backupAffirmations[widget.selectedAgeRange]!.keys.map((
+                category,
+              ) {
                 return GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
@@ -932,7 +980,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
                 );
               }).toList(),
             ),
-            
+
             const SizedBox(height: 25),
           ],
         ),
@@ -948,21 +996,21 @@ class _AffirmationScreenState extends State<AffirmationScreen> with TickerProvid
       _isLoading = false;
       _isUsingBackup = true;
     });
-    
+
     _fadeController.reset();
     _scaleController.reset();
     _sparkleController.reset();
     _quotationController.reset();
-    
+
     _startAnimations();
-    
+
     // Try to get AI affirmation in background
     try {
       final affirmation = await AffirmationsData.getAffirmationByCategory(
-        widget.selectedAgeRange, 
-        category
+        widget.selectedAgeRange,
+        category,
       );
-      
+
       if (mounted) {
         setState(() {
           _currentAffirmation = affirmation;

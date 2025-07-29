@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:toto_tales/screens/affirmation_screen.dart';
 import 'package:toto_tales/screens/home_screen.dart';
 import 'package:toto_tales/screens/login_screen.dart';
@@ -10,12 +9,10 @@ import 'package:toto_tales/screens/story_library_screen.dart';
 import 'providers/age_provider.dart';
 import 'services/firebase_service.dart';
 import 'firebase_options.dart';
-import 'package:flutter/foundation.dart';
 import 'package:device_preview/device_preview.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: 'assets/.env');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -23,7 +20,7 @@ void main() async {
 
   runApp(
     DevicePreview(
-      enabled: false,
+      enabled: true,
       builder: (context) => MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AgeProvider()),
